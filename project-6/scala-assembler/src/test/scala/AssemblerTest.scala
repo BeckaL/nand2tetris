@@ -17,13 +17,13 @@ class AssemblerTest extends AnyFlatSpec with Matchers with TableDrivenPropertyCh
    )
 
    forAll(data) { case (instruction, expected) =>
-     Assembler.parseAsBinaryString(List(instruction)) shouldBe List(expected)
+     Assembler.parseAsBinaryString(List(instruction), Lexer.PREDEFINED_SYMBOLS) shouldBe List(expected)
    }
  }
   it should "ignore commented lines and whitespace lines" in {
     val instructions = List(" ", "@51", "// some comments", "   // some other comments", "@1000", "     ")
     val expected = List(fiftyOneInBinary, aThousandInBinary)
-    Assembler.parseAsBinaryString(instructions) shouldBe expected
+    Assembler.parseAsBinaryString(instructions, Lexer.PREDEFINED_SYMBOLS) shouldBe expected
   }
 
   it should "translate a c instruction without a jump" in {
@@ -37,7 +37,7 @@ class AssemblerTest extends AnyFlatSpec with Matchers with TableDrivenPropertyCh
     )
 
     forAll(data) { case (instruction, expected) =>
-      Assembler.parseAsBinaryString(List(instruction)) shouldBe List(expected)
+      Assembler.parseAsBinaryString(List(instruction), Lexer.PREDEFINED_SYMBOLS) shouldBe List(expected)
     }
   }
 
@@ -54,7 +54,7 @@ class AssemblerTest extends AnyFlatSpec with Matchers with TableDrivenPropertyCh
     )
 
     forAll(data) { case (instruction, expected) =>
-      Assembler.parseAsBinaryString(List(instruction)) shouldBe List(expected)
+      Assembler.parseAsBinaryString(List(instruction), Lexer.PREDEFINED_SYMBOLS) shouldBe List(expected)
     }
   }
 

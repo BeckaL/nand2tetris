@@ -1,17 +1,19 @@
+import utils.{IntOps, StringOps}
+
 object Assembler {
-  def parseAsBinaryString(instructions: List[String]): List[String] =
+  def parseAsBinaryString(instructions: List[String], symbolsMap: Map[String, Int]): List[String] =
     instructions.map(str =>
       str.trim.toList match {
-        case '@' :: rest => Some(aInstruction(rest.mkString("")))
+        case '@' :: rest => Some(aInstruction(rest.mkString(""), symbolsMap))
         case '/' :: '/' :: _ => None
         case Nil => None
         case cInstructionString => Some(cInstruction(cInstructionString.mkString("")))
       }
     ).collect{ case Some(binString) => binString}
 
-  private def aInstruction(string: String): String = {
+  private def aInstruction(string: String, symbolsMap: Map[String, Int]): String = {
     val trimmedString = string.stripCommentsAndWhitespace
-    PREDEFINED_SYMBOLS.get(trimmedString) match {
+    symbolsMap.get(trimmedString) match {
       case Some(i) => "0" + i.toPaddedBinaryString(15)
       case None => "0" + trimmedString.toPaddedBinaryString(15)
     }
@@ -37,28 +39,6 @@ object Assembler {
 
   private def jumpBits(jumpString: Option[String]): String =
     JUMP_BITS_MAP(jumpString.map(_.stripCommentsAndWhitespace))
-
-  implicit class StringOps(string: String) {
-    def splitIntoMaxTwo(splitString: String): (String, Option[String]) =
-      string.indexOf(splitString) match {
-        case -1 => (string.trim, None)
-        case n =>
-          val (first, second) = string.splitAt(n)
-          (first.trim, Some(second.drop(1).trim))
-      }
-
-    def toPaddedBinaryString(requiredSize: Int): String =
-      string.toInt.toPaddedBinaryString(requiredSize)
-
-    def stripCommentsAndWhitespace: String = splitIntoMaxTwo("//")._1
-  }
-
-  implicit class IntOps(i: Int) {
-    def toPaddedBinaryString(requiredSize: Int) = {
-      val unpaddedBinary = i.toBinaryString
-      "0" * (requiredSize - unpaddedBinary.length) + unpaddedBinary
-    }
-  }
 
   val COMPUTATION_BITS_MAP = Map(
     "0" -> "101010",
@@ -91,14 +71,4 @@ object Assembler {
     Some("JLE") -> "110",
     Some("JMP") -> "111"
   )
-
-  val PREDEFINED_SYMBOLS = Map[String, Int](
-    "SP" -> 0,
-    "LCL" -> 1,
-    "ARG" -> 2,
-    "THIS" -> 3,
-    "THAT" -> 4,
-    "SCREEN" -> 16384,
-    "KBD" -> 24576,
-  ) ++ (0 to 15).map(i => s"R$i" -> i).toMap
 }
