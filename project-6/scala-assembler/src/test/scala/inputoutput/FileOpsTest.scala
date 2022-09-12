@@ -1,9 +1,11 @@
+package inputoutput
+
+import cats.effect.unsafe.implicits.global
+import inputoutput.FileOps.{readFile, readTransformAndWrite, writeFile}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
-import FileOps.{readFile, readTransformAndWrite, writeFile}
-import cats.effect.unsafe.implicits.global
-import org.scalatest.BeforeAndAfterEach
 
 import java.nio.file.{Files, Paths}
 

@@ -1,6 +1,7 @@
+import assembler.Assembler
 import cats.effect.ExitCode.Error
 import cats.effect.{ExitCode, IO, IOApp}
-
+import inputoutput.FileOps
 
 object Main extends IOApp {
   def run(args: List[String]) =
@@ -9,12 +10,7 @@ object Main extends IOApp {
   private def assemble(pathToResourcesFolder: String, asmFileName: String): IO[ExitCode] =
     val filePathIn = pathToResourcesFolder + "/in/" + asmFileName + ".asm"
     val filePathOut = pathToResourcesFolder + "/out/" + asmFileName + ".hack"
-    //TODO fix
-    def transformF(in: List[String]): List[String] = {
-      val map = Lexer.getMap(in)
-      Assembler.parseAsBinaryString(in, map)
-    }
-    FileOps.readTransformAndWrite(inPath = filePathIn, outPath = filePathOut, transformF = transformF).flatMap{
+    FileOps.readTransformAndWrite(inPath = filePathIn, outPath = filePathOut, transformF = Assembler.assemble).flatMap{
       case Right(()) => IO.pure(println("success!")).as(ExitCode.Success)
       case Left(message) => IO.pure(println(s"assembling failed: $message")).as(ExitCode.Error)
     }

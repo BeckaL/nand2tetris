@@ -1,4 +1,6 @@
-object utils {
+package utils
+
+object implicits {
   implicit class StringOps(string: String) {
     def splitIntoMaxTwo(splitString: String): (String, Option[String]) =
       string.indexOf(splitString) match {

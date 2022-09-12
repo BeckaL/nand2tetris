@@ -2,6 +2,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 import cats.effect.unsafe.implicits.global
+import inputoutput.FileOps
 import org.scalatest.BeforeAndAfterEach
 
 import java.nio.file.{Files, Paths}
