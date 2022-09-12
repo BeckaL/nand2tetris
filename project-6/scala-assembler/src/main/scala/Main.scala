@@ -10,7 +10,10 @@ object Main extends IOApp {
     val filePathIn = pathToResourcesFolder + "/in/" + asmFileName + ".asm"
     val filePathOut = pathToResourcesFolder + "/out/" + asmFileName + ".hack"
     //TODO fix
-    def transformF(in: List[String]): List[String] = in.map(_ => "blah")
+    def transformF(in: List[String]): List[String] = {
+      val map = Lexer.getMap(in)
+      Assembler.parseAsBinaryString(in, map)
+    }
     FileOps.readTransformAndWrite(inPath = filePathIn, outPath = filePathOut, transformF = transformF).flatMap{
       case Right(()) => IO.pure(println("success!")).as(ExitCode.Success)
       case Left(message) => IO.pure(println(s"assembling failed: $message")).as(ExitCode.Error)

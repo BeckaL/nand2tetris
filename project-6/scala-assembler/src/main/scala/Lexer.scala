@@ -3,12 +3,12 @@ import utils.StringOps
 object Lexer {
   def getMap(instructions: List[String]): Map[String, Int] =
     val trimmedInstructions = instructions.map(_.stripCommentsAndWhitespace).filterNot(_.isEmpty)
-    val symbolsAfterFirstPass = PREDEFINED_SYMBOLS ++ parseSymbols(trimmedInstructions.filterNot(_.isEmpty).zipWithIndex, Map())
-    parseVariables(trimmedInstructions, symbolsAfterFirstPass)
+    val symbolsAfterFirstPass = parseSymbols(trimmedInstructions.filterNot(_.isEmpty).zipWithIndex, Map())
+    parseVariables(trimmedInstructions, PREDEFINED_SYMBOLS ++ symbolsAfterFirstPass)
 
   private def parseVariables(instructions: List[String], mapWithSymbols: Map[String, Int]): Map[String, Int] =
     instructions.foldLeft((mapWithSymbols, 16)) { case ((map, index), instruction) =>
-      val VariablePattern = "@([A-Za-z]+)".r
+      val VariablePattern = "@([A-Za-z][\\S]*)".r
       instruction match
         case VariablePattern(variable) if !map.contains(variable) => (map.updated(variable, index), index + 1)
         case _ => (map, index)
@@ -18,7 +18,7 @@ object Lexer {
     filteredInstructionsWithIndex match {
       case Nil => currentMap
       case (firstInstruction, index) :: otherInstructions =>
-        val SymbolPattern = "\\(([A-Za-z]+)\\)".r
+        val SymbolPattern = "\\(([A-Za-z][\\S]*)\\)".r
         firstInstruction match {
           case SymbolPattern(variable) =>
             val newInstructionsWithIndex = otherInstructions.map { case (str, i) => (str, i - 1) }
@@ -38,6 +38,4 @@ object Lexer {
     "SCREEN" -> 16384,
     "KBD" -> 24576,
   ) ++ (0 to 15).map(i => s"R$i" -> i).toMap
-
-
 }

@@ -6,6 +6,7 @@ object Assembler {
       str.trim.toList match {
         case '@' :: rest => Some(aInstruction(rest.mkString(""), symbolsMap))
         case '/' :: '/' :: _ => None
+        case '(' :: _ => None
         case Nil => None
         case cInstructionString => Some(cInstruction(cInstructionString.mkString("")))
       }
@@ -25,12 +26,13 @@ object Assembler {
       case (storeIn, Some(computation)) => (computationBits(computation), destinationBits(storeIn))
       case (computation, None) => (computationBits(computation), destinationBits(""))
     }
-    "111" + compBits + destBits + jumpBits(maybeJump)
+    val res = "111" + compBits + destBits + jumpBits(maybeJump)
+    res
   }
 
   private def computationBits(string: String): String =
     string.stripCommentsAndWhitespace match {
-      case mString if string.contains("M") => "1" + COMPUTATION_BITS_MAP(mString.replace("M", "A"))
+      case mString if mString.contains("M") => "1" + COMPUTATION_BITS_MAP(mString.replace("M", "A"))
       case aString => "0" + COMPUTATION_BITS_MAP(aString)
     }
 

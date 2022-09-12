@@ -21,7 +21,7 @@ class AssemblerTest extends AnyFlatSpec with Matchers with TableDrivenPropertyCh
    }
  }
   it should "ignore commented lines and whitespace lines" in {
-    val instructions = List(" ", "@51", "// some comments", "   // some other comments", "@1000", "     ")
+    val instructions = List(" ", "@51", "// some comments", "   // some other comments", "(ASYMBOL)", "@1000", "     ")
     val expected = List(fiftyOneInBinary, aThousandInBinary)
     Assembler.parseAsBinaryString(instructions, Lexer.PREDEFINED_SYMBOLS) shouldBe expected
   }
@@ -31,6 +31,7 @@ class AssemblerTest extends AnyFlatSpec with Matchers with TableDrivenPropertyCh
       ("instruction", "expected"),
       ("D=A", "1110110000010000"),
       ("D=M", "1111110000010000"),
+      ("M=D   // M[2] = D", "1110001100001000"),
       ("D=D-M", "1111010011010000"),
       ("-D //some comment", "1110001111000000"),
       ("   A=!M // some comment", "1111110001100000")
