@@ -1,6 +1,5 @@
 package utils
 
-
 // TODO: this is copied from project 6, work out how to share and make in makefile
 object implicits {
   implicit class StringOps(string: String) {

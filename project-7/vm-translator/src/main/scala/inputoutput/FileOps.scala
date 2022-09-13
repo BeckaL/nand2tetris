@@ -1,31 +1,16 @@
 package inputoutput
 
-import cats.data.EitherT
-import cats.effect.{IO, Resource}
-
 import java.nio.file.{Files, Paths}
 import scala.io.Source
+import scala.jdk.CollectionConverters._
 
-//TODO this is copied from project 6, work out how to share and make in makefile
 object FileOps {
-  def readTransformAndWrite(inPath: String, outPath: String, transformF: List[String] => List[String]): IO[Either[String, Unit]] =
-    (for {
-      lines <- EitherT(readFile(inPath))
-      transformed = transformF(lines)
-      r <- EitherT.right[String](writeFile(outPath, transformed))
-    } yield r).value
+  def readTransformAndWrite(inPath: String, outPath: String, transformF: List[String] => List[String]): Unit =
+    val inputLines = readFile(inPath)
+    val transformed = transformF(inputLines)
+    writeFile(outPath, transformed)
 
-  def readFile(path: String): IO[Either[String, List[String]]] =
-    Resource
-      .fromAutoCloseable(IO {
-        Source.fromFile(path)
-      })
-      .use(file => IO.pure(file.getLines().toList))
-      .attempt
-      .map(_.left.map(_.getMessage))
+  def readFile(path: String): List[String] = Files.readAllLines(Paths.get(path)).asScala.toList
 
-
-  def writeFile(path: String, lines: List[String]): IO[Unit] =
-    val pathToFile = Paths.get(path)
-    IO(Files.write(pathToFile, lines.mkString("\n").getBytes()))
+  def writeFile(path: String, lines: List[String]): Unit = Files.write(Paths.get(path), lines.mkString("\n").getBytes())
 }
