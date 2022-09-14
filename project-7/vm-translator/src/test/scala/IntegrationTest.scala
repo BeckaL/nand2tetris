@@ -7,13 +7,14 @@ import org.scalatest.BeforeAndAfterEach
 
 
 class IntegrationTest extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks with BeforeAndAfterEach{
-  val fileNames = List("SimpleAdd", "StackTest")
+  val fileNames = List("SimpleAdd", "StackTest", "StaticTest")
 
   "main" should "produce the expected asm file" in {
     val data = Table(
       ("file", "expectedFile"),
       ("SimpleAdd", "ExpectedSimpleAdd"),
-      ("StackTest", "ExpectedStackTest")
+      ("StackTest", "ExpectedStackTest"),
+      ("StaticTest", "ExpectedStaticTest")
     )
 
     forAll(data) { case (fileName, expectedFilename) =>

@@ -1,7 +1,7 @@
 package parser
 
 object Translator {
-  def translate(commands: List[Command]): List[String] = {
+  def translate(commands: List[Command], fileName: String): List[String] = {
     def translateTrackingNextN(commands: List[Command], asmLines: List[String], currentN: Int): List[String] =
       commands match {
         case Nil => asmLines
@@ -10,20 +10,41 @@ object Translator {
             val (lines, nextN) = translateArithmeticAndLogicalCommand(arithmenticCommand, currentN)
             translateTrackingNextN(others, asmLines ++ lines, nextN)
           case memoryCommand: MemoryCommand =>
-            val lines = translateMemoryCommand(memoryCommand)
+            val lines = translateMemoryCommand(memoryCommand, fileName)
             translateTrackingNextN(others, asmLines ++ lines, currentN)
         }
       }
     translateTrackingNextN(commands, List(), 0) ++ end
   }
 
-  def translateMemoryCommand(command: MemoryCommand): List[String] =
+  def translateMemoryCommand(command: MemoryCommand, fileName: String): List[String] =
     command match {
       case Push(CONSTANT, i) =>
         List(
           s"//push CONSTANT $i",
           s"@$i",
           "D=A",
+          "@SP",
+          "A=M",
+          "M=D",
+          "@SP",
+          "M=M+1"
+        )
+      case Pop(STATIC, i) =>
+        List(
+          s"//pop STATIC $i",
+          "@SP",
+          "M=M-1",
+          "A=M",
+          "D=M",
+          s"@$fileName.$i",
+          "M=D"
+        )
+      case Push(STATIC, i) =>
+        List(
+          s"//push STATIC $i",
+          s"@$fileName.$i",
+          "D=M",
           "@SP",
           "A=M",
           "M=D",
