@@ -23,3 +23,6 @@ M=D+M
 D=A
 @SP
 M=D+1
+(END)
+@END
+0;JMP
