@@ -41,19 +41,37 @@ object Translator {
             s"@$fileName.$i",
             "M=D"
           )
-      case Pop(ARG, i) => popToPointer("ARG", i)
-      case Pop(THIS, i) => popToPointer("THIS", i)
-      case Pop(THAT, i) => popToPointer("THAT", i)
-      case Pop(LCL, i) => popToPointer("LCL", i)
+      case Pop(ARG, i) => popToMemSegPointer("ARG", i)
+      case Pop(THIS, i) => popToMemSegPointer("THIS", i)
+      case Pop(THAT, i) => popToMemSegPointer("THAT", i)
+      case Pop(LCL, i) => popToMemSegPointer("LCL", i)
+      case Pop(POINTER, i) => popToPointer(i)
       case Pop(TEMP, i) => popToTemp(i)
-      case Push(ARG, i) => pushFromPointer("ARG", i)
-      case Push(THIS, i) => pushFromPointer("THIS", i)
-      case Push(THAT, i) => pushFromPointer("THAT", i)
-      case Push(LCL, i) => pushFromPointer("LCL", i)
+      case Push(ARG, i) => pushFromMemSegPointer("ARG", i)
+      case Push(THIS, i) => pushFromMemSegPointer("THIS", i)
+      case Push(THAT, i) => pushFromMemSegPointer("THAT", i)
+      case Push(LCL, i) => pushFromMemSegPointer("LCL", i)
+      case Push(POINTER, i) => pushFromPointer(i)
       case Push(TEMP, i) => pushFromTemp(i)
-      case c => throw new RuntimeException(s"Don't know how to implement ${c}")
+      case unknownCommand => throw new RuntimeException(s"Don't know how to implement ${unknownCommand}")
     }
   }
+
+
+  private def popToPointer(i: Int): List[String] = {
+    List(pointerAddress(i), "D=A", "@R13", "M=D") ++ popTopStackToAddressInR13
+  }
+
+  private def pushFromPointer(i: Int): List[String] =
+    List(pointerAddress(i), "D=M") ++ pushDToSpAndIncrement
+
+  private def pointerAddress(i: Int): String =
+    i match {
+      case 0 => "@3"
+      case 1 => "@4"
+      case _ => throw new RuntimeException(s"Don't know how to get pointer $i")
+    }
+
 
   private def pushFromTemp(i: Int) =
     List(
@@ -68,7 +86,7 @@ object Translator {
       "D=M", //store get value from arg i in D
     ) ++ pushDToSpAndIncrement
 
-  private def pushFromPointer(pointerString: String, i: Int): List[String] =
+  private def pushFromMemSegPointer(pointerString: String, i: Int): List[String] =
     List(
       s"//push $pointerString $i",
       s"@$pointerString",
@@ -91,7 +109,7 @@ object Translator {
   private def popTopStackToAddressInR13 =
     storeTopStackValueInDAndDecrementSP ++ List("@R13", "A=M", "M=D")
 
-  private def popToPointer(pointerString: String, i: Int): List[String] =
+  private def popToMemSegPointer(pointerString: String, i: Int): List[String] =
     List(
       s"//pop $pointerString $i",
       s"@${pointerString}",
