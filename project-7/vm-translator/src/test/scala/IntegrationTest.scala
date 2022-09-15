@@ -20,7 +20,7 @@ class IntegrationTest extends AnyFlatSpec with Matchers with TableDrivenProperty
     )
 
     forAll(data) { case (fileName, expectedFilename) =>
-      val runCommands = Array("./src/test/resources", fileName)
+      val runCommands = Array(s"./src/test/resources/$fileName.vm")
 
       Main.main(runCommands)
 

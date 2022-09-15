@@ -1,7 +1,6 @@
 package inputoutput
 
 import java.nio.file.{Files, Paths}
-import scala.io.Source
 import scala.jdk.CollectionConverters._
 
 object FileOps {

@@ -8,5 +8,6 @@ lazy val root = (project in file("."))
   .settings(
     name := "vm-translator",
     scalaVersion := scala3Version,
-    libraryDependencies ++= scalatest
+    libraryDependencies ++= scalatest,
+    assembly / assemblyJarName := "submission.jar"
   )
