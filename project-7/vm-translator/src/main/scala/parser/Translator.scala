@@ -14,51 +14,99 @@ object Translator {
             translateTrackingNextN(others, asmLines ++ lines, currentN)
         }
       }
+
     translateTrackingNextN(commands, List(), 0) ++ end
   }
 
-  def translateMemoryCommand(command: MemoryCommand, fileName: String): List[String] =
+  private val pushDToSpAndIncrement = List("@SP", "A=M", "M=D", "@SP", "M=M+1")
+  private val storeTopStackValueInDAndDecrementSP = List("@SP", "M=M-1", "A=M", "D=M")
+
+  def translateMemoryCommand(command: MemoryCommand, fileName: String): List[String] = {
     command match {
       case Push(CONSTANT, i) =>
         List(
           s"//push CONSTANT $i",
           s"@$i",
-          "D=A",
-          "@SP",
-          "A=M",
-          "M=D",
-          "@SP",
-          "M=M+1"
-        )
-      case Pop(STATIC, i) =>
-        List(
-          s"//pop STATIC $i",
-          "@SP",
-          "M=M-1",
-          "A=M",
-          "D=M",
-          s"@$fileName.$i",
-          "M=D"
-        )
+          "D=A"
+        ) ++ pushDToSpAndIncrement
       case Push(STATIC, i) =>
         List(
           s"//push STATIC $i",
           s"@$fileName.$i",
           "D=M",
-          "@SP",
-          "A=M",
-          "M=D",
-          "@SP",
-          "M=M+1"
-        )
-      case _ => ???
+        ) ++ pushDToSpAndIncrement
+      case Pop(STATIC, i) =>
+        (s"//pop STATIC $i" +: storeTopStackValueInDAndDecrementSP) ++
+          List(
+            s"@$fileName.$i",
+            "M=D"
+          )
+      case Pop(ARG, i) => popToPointer("ARG", i)
+      case Pop(THIS, i) => popToPointer("THIS", i)
+      case Pop(THAT, i) => popToPointer("THAT", i)
+      case Pop(LCL, i) => popToPointer("LCL", i)
+      case Pop(TEMP, i) => popToTemp(i)
+      case Push(ARG, i) => pushFromPointer("ARG", i)
+      case Push(THIS, i) => pushFromPointer("THIS", i)
+      case Push(THAT, i) => pushFromPointer("THAT", i)
+      case Push(LCL, i) => pushFromPointer("LCL", i)
+      case Push(TEMP, i) => pushFromTemp(i)
+      case c => throw new RuntimeException(s"Don't know how to implement ${c}")
     }
+  }
+
+  private def pushFromTemp(i: Int) =
+    List(
+      s"//push TEMP $i",
+      "@5",
+      "D=A") ++ pushFromDPlusI(i)
+
+  private def pushFromDPlusI(i: Int) =
+    List(
+      s"@$i",
+      "A=D+A",
+      "D=M", //store get value from arg i in D
+    ) ++ pushDToSpAndIncrement
+
+  private def pushFromPointer(pointerString: String, i: Int): List[String] =
+    List(
+      s"//push $pointerString $i",
+      s"@$pointerString",
+      "D=M"
+    ) ++ pushFromDPlusI(i)
+
+
+  private def popToTemp(i: Int) = {
+    List(
+      s"//pop TEMP $i",
+      s"@5",
+      "D=A",
+      s"@$i",
+      "D=D+A",
+      "@R13",
+      "M=D", //store address to pop to in R13
+    ) ++ popTopStackToAddressInR13
+  }
+
+  private def popTopStackToAddressInR13 =
+    storeTopStackValueInDAndDecrementSP ++ List("@R13", "A=M", "M=D")
+
+  private def popToPointer(pointerString: String, i: Int): List[String] =
+    List(
+      s"//pop $pointerString $i",
+      s"@${pointerString}",
+      "D=M",
+      s"@$i",
+      "D=D+A",
+      "@R13",
+      "M=D", //store address to pop to in R13
+    ) ++ popTopStackToAddressInR13
 
   def translateArithmeticAndLogicalCommand(command: ArithmeticAndLogicalCommand, nextN: Int): (List[String], Int) =
     command match {
       case Add => (binaryOperation(List("M=D+M"), "//add"), nextN)
       case Sub => (binaryOperation(List("M=M-D"), "//sub"), nextN)
-      case And => (binaryOperation(List("M=M&D"), "//and"),  nextN)
+      case And => (binaryOperation(List("M=M&D"), "//and"), nextN)
       case Or => (binaryOperation(List("M=D|M"), "//or"), nextN)
       case Gt => (binaryComparatorOperation("JGT", nextN, "//gt"), nextN + 1)
       case Lt => (binaryComparatorOperation("JLT", nextN, "//lt"), nextN + 1)
@@ -81,7 +129,7 @@ object Translator {
     (commentString +: getMOfTopStackValue) ++ setM ++ setSPToCurrentAddressPlusOne
   }
 
-  private val setDAndMRegistersToTopTwoStackValues =  List(
+  private val setDAndMRegistersToTopTwoStackValues = List(
     "@SP",
     "A=M-1",
     "D=M",
