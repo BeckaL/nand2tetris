@@ -6,6 +6,7 @@ A=M
 M=D
 @SP
 M=M+1
+//pop POINTER 0
 @3
 D=A
 @R13
@@ -25,6 +26,7 @@ A=M
 M=D
 @SP
 M=M+1
+//pop POINTER 1
 @4
 D=A
 @R13
@@ -80,6 +82,7 @@ D=M
 @R13
 A=M
 M=D
+//push POINTER 0
 @3
 D=M
 @SP
@@ -87,6 +90,7 @@ A=M
 M=D
 @SP
 M=M+1
+//push POINTER 1
 @4
 D=M
 @SP
