@@ -23,54 +23,38 @@ object Translator {
 
   def translateMemoryCommand(command: MemoryCommand, fileName: String): List[String] = {
     command match {
-      case Push(CONSTANT, i) =>
-        List(
-          s"//push CONSTANT $i",
-          s"@$i",
-          "D=A"
-        ) ++ pushDToSpAndIncrement
-      case Push(STATIC, i) =>
-        List(
-          s"//push STATIC $i",
-          s"@$fileName.$i",
-          "D=M",
-        ) ++ pushDToSpAndIncrement
-      case Pop(STATIC, i) =>
-        (s"//pop STATIC $i" +: storeTopStackValueInDAndDecrementSP) ++
-          List(
-            s"@$fileName.$i",
-            "M=D"
-          )
-      case Pop(ARG, i) => popToMemSegPointer("ARG", i)
-      case Pop(THIS, i) => popToMemSegPointer("THIS", i)
-      case Pop(THAT, i) => popToMemSegPointer("THAT", i)
-      case Pop(LCL, i) => popToMemSegPointer("LCL", i)
+      case Push(CONSTANT, i) => pushFromConstant(i)
+      case Push(STATIC, i) => pushFromStatic(i, fileName)
+      case Push(memSeg, i) if Set(ARG, THIS, THAT, LCL).contains(memSeg) => pushFromMemSegPointer(memSeg.toString, i)
+      case Push(TEMP, i) => pushFromTemp(i)
+      case Push(POINTER, i) => pushFromPointer(i)
+
+      case Pop(STATIC, i) => popToStatic(i, fileName)
+      case Pop(memSeg, i) if Set(ARG, THIS, THAT, LCL).contains(memSeg) => popToMemSegPointer(memSeg.toString, i)
       case Pop(POINTER, i) => popToPointer(i)
       case Pop(TEMP, i) => popToTemp(i)
-      case Push(ARG, i) => pushFromMemSegPointer("ARG", i)
-      case Push(THIS, i) => pushFromMemSegPointer("THIS", i)
-      case Push(THAT, i) => pushFromMemSegPointer("THAT", i)
-      case Push(LCL, i) => pushFromMemSegPointer("LCL", i)
-      case Push(POINTER, i) => pushFromPointer(i)
-      case Push(TEMP, i) => pushFromTemp(i)
+
       case unknownCommand => throw new RuntimeException(s"Don't know how to implement ${unknownCommand}")
     }
   }
 
+  private def pushFromStatic(i: Int, fileName: String) =
+    List(
+      s"//push STATIC $i",
+      s"@$fileName.$i",
+      "D=M",
+    ) ++ pushDToSpAndIncrement
 
-  private def popToPointer(i: Int): List[String] = {
-    List(pointerAddress(i), "D=A", "@R13", "M=D") ++ popTopStackToAddressInR13
-  }
+  private def pushFromConstant(i: Int) =
+    List(
+      s"//push CONSTANT $i",
+      s"@$i",
+      "D=A"
+    ) ++ pushDToSpAndIncrement
+
 
   private def pushFromPointer(i: Int): List[String] =
     List(pointerAddress(i), "D=M") ++ pushDToSpAndIncrement
-
-  private def pointerAddress(i: Int): String =
-    i match {
-      case 0 => "@3"
-      case 1 => "@4"
-      case _ => throw new RuntimeException(s"Don't know how to get pointer $i")
-    }
 
 
   private def pushFromTemp(i: Int) =
@@ -93,6 +77,16 @@ object Translator {
       "D=M"
     ) ++ pushFromDPlusI(i)
 
+
+  private def popToPointer(i: Int): List[String] =
+    List(pointerAddress(i), "D=A", "@R13", "M=D") ++ popTopStackToAddressInR13
+
+  private def popToStatic(i: Int, fileName: String) =
+    (s"//pop STATIC $i" +: storeTopStackValueInDAndDecrementSP) ++
+      List(
+        s"@$fileName.$i",
+        "M=D"
+      )
 
   private def popToTemp(i: Int) = {
     List(
@@ -120,6 +114,14 @@ object Translator {
       "M=D", //store address to pop to in R13
     ) ++ popTopStackToAddressInR13
 
+
+  private def pointerAddress(i: Int): String =
+    i match {
+      case 0 => "@3"
+      case 1 => "@4"
+      case _ => throw new RuntimeException(s"Don't know how to get pointer $i")
+    }
+
   def translateArithmeticAndLogicalCommand(command: ArithmeticAndLogicalCommand, nextN: Int): (List[String], Int) =
     command match {
       case Add => (binaryOperation(List("M=D+M"), "//add"), nextN)
@@ -138,7 +140,6 @@ object Translator {
       "@SP",
       "A=M-1",
     )
-    //is this right and the one below?
     val setSPToCurrentAddressPlusOne = List(
       "D=A",
       "@SP",
