@@ -21,6 +21,7 @@ class ParserTest extends AnyFlatSpec with Matchers with TableDrivenPropertyCheck
       ("push temp 10", Push(TEMP, 10)),
       ("function SimpleFunction.test 2", FunctionDeclaration("SimpleFunction.test", 2)),
       ("return", FunctionReturn),
+      ("call SimpleFunction.test 2", FunctionCall("SimpleFunction.test", 2)),
       ("label LABEL_NAME.FOO", Label("LABEL_NAME.FOO")),
       ("goto LABEL_NAME.FOO", GoTo("LABEL_NAME.FOO")),
       ("if-goto LABEL_NAME.FOO", IfGoTo("LABEL_NAME.FOO")),
