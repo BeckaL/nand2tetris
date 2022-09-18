@@ -4,37 +4,48 @@ import parser.MemorySegment
 
 object Translator {
   def translate(commands: List[Command], fileName: String): List[String] = {
-    def translateTrackingNextN(commands: List[Command], asmLines: List[String], currentN: Int): List[String] =
+    def translateTrackingNextN(commands: List[Command], asmLines: List[String], currentN: Int, returnN: Int): List[String] =
       commands match {
         case Nil => asmLines
         case firstCommand :: others => firstCommand match {
           case arithmenticCommand: ArithmeticAndLogicalCommand =>
             val (lines, nextN) = translateArithmeticAndLogicalCommand(arithmenticCommand, currentN)
-            translateTrackingNextN(others, asmLines ++ lines, nextN)
+            translateTrackingNextN(others, asmLines ++ lines, nextN, returnN)
           case memoryCommand: MemoryCommand =>
             val lines = memoryCommand match {
               case Push(memorySegment, i) => push(memorySegment, i, fileName)
               case Pop(memorySegment, i) => pop(memorySegment, i, fileName)
             }
-            translateTrackingNextN(others, asmLines ++ lines, currentN)
+            translateTrackingNextN(others, asmLines ++ lines, currentN, returnN)
           case functionCommand: FunctionCommand =>
-            val lines = functionCommand match {
-              case FunctionDeclaration(name, nArgs) => functionDeclaration(name, nArgs)
-              case FunctionReturn => functionReturn
-              case FunctionCall(name, nArgs) => ???
+            val (lines, newReturnN) = functionCommand match {
+              case FunctionDeclaration(name, nArgs) => (functionDeclaration(name, nArgs), returnN)
+              case FunctionReturn => (functionReturn, returnN)
+              case FunctionCall(name, nArgs) => (functionCall(name, nArgs, returnN), returnN + 1)
             }
-            translateTrackingNextN(others, asmLines ++ lines, currentN)
+            translateTrackingNextN(others, asmLines ++ lines, currentN, newReturnN)
           case programFlowCommand: ProgramFlowCommand =>
             val lines = programFlowCommand match {
               case Label(name) => List(s"($name)")
               case GoTo(label) => List(s"@$label", "0;JMP")
               case IfGoTo(label) => storeTopStackValueInDAndDecrementSP ++ List(s"@$label", "D;JNE")
             }
-            translateTrackingNextN(others, asmLines ++ lines, currentN)
+            translateTrackingNextN(others, asmLines ++ lines, currentN, returnN)
         }
       }
 
-    translateTrackingNextN(commands, List(), 0) ++ end
+    translateTrackingNextN(commands, List(), 0, 0) ++ end
+  }
+
+  private def functionCall(name: String, nArgs: Int, returnN: Int): List[String] = {
+    def pushVar(variable: String): List[String] = List(s"//push $variable", s"@$variable", "D=M") ++ pushDToSpAndIncrement
+    List(
+      List(s"return.$returnN", "LCL", "ARG", "THIS", "THAT").flatMap(pushVar),
+      List("//repositions arg", "@SP", "A=M") ++ List.fill(5 + nArgs)("A=A-1") ++ List("D=A", "@SP", "M=D"),
+      List("//repositions LCL", "@SP", "D=M", "@LCL", "M=D"),
+      List(s"//goTo function $name", "@name", "0:JMP"),
+      List(s"(@return.$returnN)")
+    ).flatten
   }
 
   private def functionReturn: List[String] = {
@@ -59,6 +70,8 @@ object Translator {
   private def functionDeclaration(name: String, nArgs: Int): List[String] =
     s"($name)" +: (0 until nArgs).toList.flatMap(_ => push(CONSTANT, 0, "")) //filename doesn't matter here
 
+  private val pushDToSpAndIncrement = List("@SP", "A=M", "M=D", "@SP", "M=M+1")
+
   private def push(memorySegment: MemorySegment, i: Int, fileName: String) = {
     val commentString = List(s"//push ${memorySegment.toString} $i")
     val storeValueFromMemorySegmentInD = memorySegment match {
@@ -68,7 +81,6 @@ object Translator {
       case POINTER => List(pointerAddress(i), "D=M")
       case memSegPointer => List(s"@${memSegPointer.toString}", "D=M") ++ List(s"@$i", "A=D+A", "D=M")
     }
-    val pushDToSpAndIncrement = List("@SP", "A=M", "M=D", "@SP", "M=M+1")
     commentString ++ storeValueFromMemorySegmentInD ++ pushDToSpAndIncrement
   }
 
