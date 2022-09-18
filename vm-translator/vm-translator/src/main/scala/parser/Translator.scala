@@ -24,6 +24,13 @@ object Translator {
               case FunctionCall(name, nArgs) => ???
             }
             translateTrackingNextN(others, asmLines ++ lines, currentN)
+          case programFlowCommand: ProgramFlowCommand =>
+            val lines = programFlowCommand match {
+              case Label(name) => List(s"($name)")
+              case GoTo(label) => List(s"@$label", "0;JMP")
+              case IfGoTo(label) => storeTopStackValueInDAndDecrementSP ++ List(s"@$label", "D;JNE")
+            }
+            translateTrackingNextN(others, asmLines ++ lines, currentN)
         }
       }
 

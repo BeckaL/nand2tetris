@@ -8,7 +8,7 @@ import org.scalatest.BeforeAndAfterEach
 
 class IntegrationTest extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks with BeforeAndAfterEach{
   val fileNamesForProject7 = List("SimpleAdd", "StackTest", "StaticTest", "BasicTest", "PointerTest")
-  val fileNamesForProject8 = List("SimpleFunction")
+  val fileNamesForProject8 = List("SimpleFunction", "BasicLoop", "FibonacciSeries")
 
   "main" should "produce the expected asm file" in {
     fileNamesForProject7.foreach{fileName =>
@@ -36,7 +36,7 @@ class IntegrationTest extends AnyFlatSpec with Matchers with TableDrivenProperty
 
   override def afterEach(): Unit = {
     fileNamesForProject7.foreach(fileName => Files.deleteIfExists(Paths.get(s"./src/test/resources/$fileName.asm")))
-    fileNamesForProject7.foreach(fileName => Files.deleteIfExists(Paths.get(s"./src/test/resources-project-8/$fileName.asm")))
+    fileNamesForProject8.foreach(fileName => Files.deleteIfExists(Paths.get(s"./src/test/resources-project-8/$fileName.asm")))
   }
 }
 

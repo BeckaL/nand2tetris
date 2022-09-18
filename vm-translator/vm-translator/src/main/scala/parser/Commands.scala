@@ -21,3 +21,8 @@ sealed trait FunctionCommand extends Command
 case class FunctionDeclaration(name: String, nArgs: Int) extends FunctionCommand
 case object FunctionReturn extends FunctionCommand
 case class FunctionCall(name: String, nArgs: Int) extends FunctionCommand
+
+sealed trait ProgramFlowCommand extends Command 
+case class Label(name: String) extends ProgramFlowCommand
+case class GoTo(label: String) extends ProgramFlowCommand
+case class IfGoTo(label: String) extends ProgramFlowCommand
