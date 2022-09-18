@@ -34,7 +34,7 @@ object Translator {
         }
       }
 
-    translateTrackingNextN(commands, List(), 0, 0) ++ end
+    translateTrackingNextN(commands, List(), 0, 1) ++ end
   }
 
   private def functionCall(name: String, nArgs: Int, returnN: Int): List[String] = {
@@ -43,8 +43,8 @@ object Translator {
       List(s"return.$returnN", "LCL", "ARG", "THIS", "THAT").flatMap(pushVar),
       List("//repositions arg", "@SP", "A=M") ++ List.fill(5 + nArgs)("A=A-1") ++ List("D=A", "@SP", "M=D"),
       List("//repositions LCL", "@SP", "D=M", "@LCL", "M=D"),
-      List(s"//goTo function $name", "@name", "0:JMP"),
-      List(s"(@return.$returnN)")
+      List(s"//goTo function $name", s"@$name", "0;JMP"),
+      List(s"(return.$returnN)")
     ).flatten
   }
 
@@ -98,6 +98,7 @@ object Translator {
 
   private def setR13ToDPlusI(i: Int) = List(s"@$i", "D=D+A", "@R13", "M=D")
 
+  private val bootstrapCode = List("@256", "D=A", "@SP", "M=D") ++ functionCall("Sys.init", 0, 0)
   private val storeTopStackValueInDAndDecrementSP = List("@SP", "M=M-1", "A=M", "D=M")
   private val popTopStackToAddressInR13 = storeTopStackValueInDAndDecrementSP ++ List("@R13", "A=M", "M=D")
 
