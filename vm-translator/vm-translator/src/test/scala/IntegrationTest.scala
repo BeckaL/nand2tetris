@@ -34,9 +34,20 @@ class IntegrationTest extends AnyFlatSpec with Matchers with TableDrivenProperty
     }
   }
 
+  it should "accept a directory and convert with a single vm file inside" in {
+    val runCommands = Array("./src/test/resources-project-8/BasicLoopDirectory")
+
+    Main.main(runCommands)
+
+    val actual = FileOps.readFile(s"./src/test/resources-project-8/BasicLoopDirectory/BasicLoopDirectory.asm")
+    val expected = FileOps.readFile(s"./src/test/resources-project-8/ExpectedBasicLoop.asm")
+    actual shouldBe expected
+  }
+
   override def afterEach(): Unit = {
     fileNamesForProject7.foreach(fileName => Files.deleteIfExists(Paths.get(s"./src/test/resources/$fileName.asm")))
     fileNamesForProject8.foreach(fileName => Files.deleteIfExists(Paths.get(s"./src/test/resources-project-8/$fileName.asm")))
+    Files.deleteIfExists(Paths.get("./src/test/resources-project-8/BasicLoopDirectory/BasicLoopDirectory.asm"))
   }
 }
 

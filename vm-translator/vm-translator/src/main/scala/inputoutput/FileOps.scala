@@ -16,10 +16,12 @@ object FileOps {
 
   def readFile(path: String): List[String] = Files.readAllLines(Paths.get(path)).asScala.toList
 
-  def writeFile(path: String, lines: List[String], append: Boolean = false): Unit =
-    if (append) {
-      Files.write(Paths.get(path), lines.mkString("\n").getBytes(), StandardOpenOption.APPEND)
+  def writeFile(pathAsString: String, lines: List[String], append: Boolean = false): Unit = {
+    val path = Paths.get(pathAsString)
+    if (append && Files.exists(path)) {
+      Files.write(path, lines.mkString("\n").getBytes(), StandardOpenOption.APPEND)
     } else {
-      Files.write(Paths.get(path), lines.mkString("\n").getBytes())
+      Files.write(path, lines.mkString("\n").getBytes())
     }
+  }
 }
