@@ -16,3 +16,8 @@ case object Neg extends ArithmeticAndLogicalCommand
 sealed trait MemoryCommand extends Command
 case class Pop(memorySegment: MemorySegment, i: Int) extends MemoryCommand
 case class Push(memorySegment: MemorySegment, i: Int) extends MemoryCommand
+
+sealed trait FunctionCommand extends Command
+case class FunctionDeclaration(name: String, nArgs: Int) extends FunctionCommand
+case object FunctionReturn extends FunctionCommand
+case class FunctionCall(name: String, nArgs: Int) extends FunctionCommand

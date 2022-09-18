@@ -17,16 +17,45 @@ object Translator {
               case Pop(memorySegment, i) => pop(memorySegment, i, fileName)
             }
             translateTrackingNextN(others, asmLines ++ lines, currentN)
+          case functionCommand: FunctionCommand =>
+            val lines = functionCommand match {
+              case FunctionDeclaration(name, nArgs) => functionDeclaration(name, nArgs)
+              case FunctionReturn => functionReturn
+              case FunctionCall(name, nArgs) => ???
+            }
+            translateTrackingNextN(others, asmLines ++ lines, currentN)
         }
       }
 
     translateTrackingNextN(commands, List(), 0) ++ end
   }
 
+  private def functionReturn: List[String] = {
+    def setVarToPointerOfFrameMinusI(variable: String, minusI: Int) =
+      List(s"//set $variable to frame minus $minusI", "@frame", "A=M") ++
+        List.fill(minusI)("A=A-1") ++
+        List("D=M", s"@$variable", "M=D")
+
+    List(
+      List("//set frame to LCL", "@LCL", "D=M", "@frame", "M=D"),
+      setVarToPointerOfFrameMinusI("retAddr", 5),
+      List("//reposition return value for caller") ++ storeTopStackValueInDAndDecrementSP ++ List("@ARG", "A=M", "M=D"),
+      List("//repositionSpForCaller", "@ARG", "D=M", "D=D+1", "@SP", "M=D"),
+      setVarToPointerOfFrameMinusI("THAT", 1),
+      setVarToPointerOfFrameMinusI("THIS", 2),
+      setVarToPointerOfFrameMinusI("ARG", 3),
+      setVarToPointerOfFrameMinusI("LCL", 4),
+      List("//goToRetAddr", "@retAddr", "A=M", "0;JMP")
+    ).flatten
+  }
+
+  private def functionDeclaration(name: String, nArgs: Int): List[String] =
+    s"($name)" +: (0 until nArgs).toList.flatMap(_ => push(CONSTANT, 0, "")) //filename doesn't matter here
+
   private def push(memorySegment: MemorySegment, i: Int, fileName: String) = {
     val commentString = List(s"//push ${memorySegment.toString} $i")
     val storeValueFromMemorySegmentInD = memorySegment match {
-      case STATIC => List( s"@$fileName.$i", "D=M")
+      case STATIC => List(s"@$fileName.$i", "D=M")
       case CONSTANT => List(s"@$i", "D=A")
       case TEMP => List("@5", "D=A", s"@$i", "A=D+A", "D=M")
       case POINTER => List(pointerAddress(i), "D=M")
@@ -49,6 +78,7 @@ object Translator {
   }
 
   private def setR13ToDPlusI(i: Int) = List(s"@$i", "D=D+A", "@R13", "M=D")
+
   private val storeTopStackValueInDAndDecrementSP = List("@SP", "M=M-1", "A=M", "D=M")
   private val popTopStackToAddressInR13 = storeTopStackValueInDAndDecrementSP ++ List("@R13", "A=M", "M=D")
 

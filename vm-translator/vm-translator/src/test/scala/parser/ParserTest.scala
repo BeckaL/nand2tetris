@@ -18,7 +18,9 @@ class ParserTest extends AnyFlatSpec with Matchers with TableDrivenPropertyCheck
       ("or", Or),
       ("not", Not),
       ("pop local 5", Pop(LCL, 5)),
-      ("push temp 10", Push(TEMP, 10))
+      ("push temp 10", Push(TEMP, 10)),
+      ("function SimpleFunction.test 2", FunctionDeclaration("SimpleFunction.test", 2)),
+      ("return", FunctionReturn)
     )
 
     forAll(data) { case (instruction, expectedCommand) =>

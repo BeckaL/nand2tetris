@@ -12,9 +12,6 @@ object Main {
     val filePathOut = pathToVmFile.replace(".vm", ".asm")
     val fileName = pathToVmFile.split("/").last.replace(".vm", "")
     val transformF: List[String] => List[String] = instructions => Translator.translate(Parser.parse(instructions), fileName)
-    Try(FileOps.readTransformAndWrite(inPath = pathToVmFile, outPath = filePathOut, transformF = transformF)) match {
-      case Success(()) => println("success!")
-      case Failure(exception) => println(s"assembling failed: ${exception.getMessage}")
-    }
+    FileOps.readTransformAndWrite(inPath = pathToVmFile, outPath = filePathOut, transformF = transformF)
   }
 }
