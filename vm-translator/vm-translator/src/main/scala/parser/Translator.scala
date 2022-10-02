@@ -39,9 +39,11 @@ object Translator {
 
   private def functionCall(name: String, nArgs: Int, returnN: Int): List[String] = {
     def pushVar(variable: String): List[String] = List(s"//push $variable", s"@$variable", "D=M") ++ pushDToSpAndIncrement
+    def pushAddress(variable: String): List[String] = List(s"//push $variable", s"@$variable", "D=A") ++ pushDToSpAndIncrement
     List(
-      List(s"return.$returnN", "LCL", "ARG", "THIS", "THAT").flatMap(pushVar),
-      List("//repositions arg", "@SP", "A=M") ++ List.fill(5 + nArgs)("A=A-1") ++ List("D=A", "@SP", "M=D"),
+      pushAddress(s"return.$returnN"),
+      List("LCL", "ARG", "THIS", "THAT").flatMap(pushVar),
+      List("//repositions arg", "@SP", "A=M") ++ List.fill(5 + nArgs)("A=A-1") ++ List("D=A", "@ARG", "M=D"),
       List("//repositions LCL", "@SP", "D=M", "@LCL", "M=D"),
       List(s"//goTo function $name", s"@$name", "0;JMP"),
       List(s"(return.$returnN)")
