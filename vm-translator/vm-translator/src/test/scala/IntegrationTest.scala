@@ -51,6 +51,19 @@ class IntegrationTest extends AnyFlatSpec with Matchers with TableDrivenProperty
 
     val actual = FileOps.readFile(s"./src/test/resources-project-8/FibonacciElement/FibonacciElement.asm")
     val expected = FileOps.readFile(s"./src/test/resources-project-8/FibonacciElement/ExpectedFibonacciElement.asm")
+
+    actual shouldBe expected
+  }
+
+  it should "work for statics" in {
+    val runCommands = Array("./src/test/resources-project-8/StaticsTest")
+
+    Main.main(runCommands)
+
+    val actual = FileOps.readFile(s"./src/test/resources-project-8/StaticsTest/StaticsTest.asm")
+    val expected = FileOps.readFile(s"./src/test/resources-project-8/StaticsTest/ExpectedStaticsTest.asm")
+
+    actual shouldBe expected
   }
 
   override def afterEach(): Unit = {
