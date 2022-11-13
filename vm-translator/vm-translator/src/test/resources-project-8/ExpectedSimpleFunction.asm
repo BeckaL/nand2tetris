@@ -161,6 +161,3 @@ M=D
 @retAddr
 A=M
 0;JMP
-(END)
-@END
-0;JMP

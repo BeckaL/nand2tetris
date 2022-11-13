@@ -39,8 +39,8 @@ D=M
 @R13
 A=M
 M=D
-//push return.1
-@return.1
+//push NestedCallreturn1
+@NestedCallreturn1
 D=A
 @SP
 A=M
@@ -98,7 +98,7 @@ M=D
 //goTo function Sys.main
 @Sys.main
 0;JMP
-(return.1)
+(NestedCallreturn1)
 //pop TEMP 1
 @5
 D=A
@@ -271,8 +271,8 @@ A=M
 M=D
 @SP
 M=M+1
-//push return.2
-@return.2
+//push NestedCallreturn2
+@NestedCallreturn2
 D=A
 @SP
 A=M
@@ -331,7 +331,7 @@ M=D
 //goTo function Sys.add12
 @Sys.add12
 0;JMP
-(return.2)
+(NestedCallreturn2)
 //pop TEMP 0
 @5
 D=A
@@ -641,7 +641,4 @@ M=D
 //goToRetAddr
 @retAddr
 A=M
-0;JMP
-(END)
-@END
 0;JMP

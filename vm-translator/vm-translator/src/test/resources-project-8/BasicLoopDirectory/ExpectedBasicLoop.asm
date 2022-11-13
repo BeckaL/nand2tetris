@@ -1,3 +1,67 @@
+@256
+D=A
+@SP
+M=D
+//push bootstrapreturn0
+@bootstrapreturn0
+D=A
+@SP
+A=M
+M=D
+@SP
+M=M+1
+//push LCL
+@LCL
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+//push ARG
+@ARG
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+//push THIS
+@THIS
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+//push THAT
+@THAT
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+//repositions arg
+@SP
+A=M
+A=A-1
+A=A-1
+A=A-1
+A=A-1
+A=A-1
+D=A
+@ARG
+M=D
+//repositions LCL
+@SP
+D=M
+@LCL
+M=D
+//goTo function Sys.init
+@Sys.init
+0;JMP
+(bootstrapreturn0)
 //push CONSTANT 0
 @0
 D=A
@@ -136,6 +200,3 @@ A=M
 M=D
 @SP
 M=M+1
-(END)
-@END
-0;JMP

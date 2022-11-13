@@ -12,7 +12,7 @@ class IntegrationTest extends AnyFlatSpec with Matchers with TableDrivenProperty
 
   "main" should "produce the expected asm file" in {
     fileNamesForProject7.foreach{fileName =>
-      val runCommands = Array(s"./src/test/resources/$fileName.vm")
+      val runCommands = Array(s"./src/test/resources/$fileName.vm", "false")
 
       Main.main(runCommands)
 
@@ -40,14 +40,24 @@ class IntegrationTest extends AnyFlatSpec with Matchers with TableDrivenProperty
     Main.main(runCommands)
 
     val actual = FileOps.readFile(s"./src/test/resources-project-8/BasicLoopDirectory/BasicLoopDirectory.asm")
-    val expected = FileOps.readFile(s"./src/test/resources-project-8/ExpectedBasicLoop.asm")
+    val expected = FileOps.readFile(s"./src/test/resources-project-8/BasicLoopDirectory/ExpectedBasicLoop.asm")
     actual shouldBe expected
+  }
+
+  it should "be able to translate a directory with multiple files" in {
+    val runCommands = Array("./src/test/resources-project-8/FibonacciElement")
+
+    Main.main(runCommands)
+
+    val actual = FileOps.readFile(s"./src/test/resources-project-8/FibonacciElement/FibonacciElement.asm")
+    val expected = FileOps.readFile(s"./src/test/resources-project-8/FibonacciElement/ExpectedFibonacciElement.asm")
   }
 
   override def afterEach(): Unit = {
     fileNamesForProject7.foreach(fileName => Files.deleteIfExists(Paths.get(s"./src/test/resources/$fileName.asm")))
     fileNamesForProject8.foreach(fileName => Files.deleteIfExists(Paths.get(s"./src/test/resources-project-8/$fileName.asm")))
     Files.deleteIfExists(Paths.get("./src/test/resources-project-8/BasicLoopDirectory/BasicLoopDirectory.asm"))
+    Files.deleteIfExists(Paths.get("./src/test/resources-project-8/FibonacciElement/FibonacciElement.asm"))
   }
 }
 

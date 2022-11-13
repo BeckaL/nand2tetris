@@ -21,7 +21,7 @@ object Translator {
             val (lines, newReturnN) = functionCommand match {
               case FunctionDeclaration(name, nArgs) => (functionDeclaration(name, nArgs), returnN)
               case FunctionReturn => (functionReturn, returnN)
-              case FunctionCall(name, nArgs) => (functionCall(name, nArgs, returnN), returnN + 1)
+              case FunctionCall(name, nArgs) => (functionCall(name, nArgs, returnN, fileName), returnN + 1)
             }
             translateTrackingNextN(others, asmLines ++ lines, currentN, newReturnN)
           case programFlowCommand: ProgramFlowCommand =>
@@ -33,20 +33,19 @@ object Translator {
             translateTrackingNextN(others, asmLines ++ lines, currentN, returnN)
         }
       }
-
-    translateTrackingNextN(commands, List(), 0, 1) ++ end
+    translateTrackingNextN(commands, List(), 0, 1)
   }
 
-  private def functionCall(name: String, nArgs: Int, returnN: Int): List[String] = {
+  private def functionCall(name: String, nArgs: Int, returnN: Int, filename: String): List[String] = {
     def pushVar(variable: String): List[String] = List(s"//push $variable", s"@$variable", "D=M") ++ pushDToSpAndIncrement
     def pushAddress(variable: String): List[String] = List(s"//push $variable", s"@$variable", "D=A") ++ pushDToSpAndIncrement
     List(
-      pushAddress(s"return.$returnN"),
+      pushAddress(s"${filename}return$returnN"),
       List("LCL", "ARG", "THIS", "THAT").flatMap(pushVar),
       List("//repositions arg", "@SP", "A=M") ++ List.fill(5 + nArgs)("A=A-1") ++ List("D=A", "@ARG", "M=D"),
       List("//repositions LCL", "@SP", "D=M", "@LCL", "M=D"),
       List(s"//goTo function $name", s"@$name", "0;JMP"),
-      List(s"(return.$returnN)")
+      List(s"(${filename}return$returnN)")
     ).flatten
   }
 
@@ -100,7 +99,7 @@ object Translator {
 
   private def setR13ToDPlusI(i: Int) = List(s"@$i", "D=D+A", "@R13", "M=D")
 
-  private val bootstrapCode = List("@256", "D=A", "@SP", "M=D") ++ functionCall("Sys.init", 0, 0)
+  val bootstrapCode = List("@256", "D=A", "@SP", "M=D") ++ functionCall("Sys.init", 0, 0, "bootstrap")
   private val storeTopStackValueInDAndDecrementSP = List("@SP", "M=M-1", "A=M", "D=M")
   private val popTopStackToAddressInR13 = storeTopStackValueInDAndDecrementSP ++ List("@R13", "A=M", "M=D")
 
@@ -177,9 +176,9 @@ object Translator {
     "M=M+1"
   )
 
-  private val end: List[String] = List(
-    "(END)",
-    "@END",
-    "0;JMP"
-  )
+//  val end: List[String] = List(
+//    "(END)",
+//    "@END",
+//    "0;JMP"
+//  )
 }

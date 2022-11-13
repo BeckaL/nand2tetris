@@ -7,10 +7,15 @@ import java.nio.file.{Files, Paths}
 import scala.util.{Failure, Success, Try}
 
 object Main {
-  def main(args: Array[String]) =
-    assemble(args.head)
+  def main(args: Array[String]) = {
+    args.toList match {
+      case pathToVmFileOrDirectory :: Nil => assemble(pathToVmFileOrDirectory, true)
+      case pathToVmFileOrDirectory :: withBootstrap :: Nil => assemble(pathToVmFileOrDirectory, withBootstrap.toBoolean)
+      case _ => ???
+    }
+  }
 
-  private def assemble(pathToVmFileOrDirectory: String): Unit = {
+  private def assemble(pathToVmFileOrDirectory: String, withBootstrap: Boolean): Unit = {
     if (pathToVmFileOrDirectory.endsWith(".vm")) {
       val filePath = pathToVmFileOrDirectory
       val filePathOut = filePath.replace(".vm", ".asm")
@@ -22,6 +27,11 @@ object Main {
       val vmFiles = pathToDirectory.toFile.listFiles().toList.collect { case file if file.getPath.endsWith(".vm") => file.getPath }
       val asmFilePath = pathToDirectory.toString + "/" + pathToDirectory.toString.split("/").last + ".asm"
       Files.deleteIfExists(Paths.get(asmFilePath))
+      if (withBootstrap) {
+        FileOps.writeFile(asmFilePath, Translator.bootstrapCode, append = true)
+      } else {
+        ()
+      }
       vmFiles.foreach { filePath =>
         val fileName = filePath.split("/").last.replace(".vm", "")
         val transformF: List[String] => List[String] = instructions => Translator.translate(Parser.parse(instructions), fileName)

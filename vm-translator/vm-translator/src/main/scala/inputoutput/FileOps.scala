@@ -18,10 +18,11 @@ object FileOps {
 
   def writeFile(pathAsString: String, lines: List[String], append: Boolean = false): Unit = {
     val path = Paths.get(pathAsString)
+    val bytesToWrite = (lines.mkString("\n") + "\n").getBytes()
     if (append && Files.exists(path)) {
-      Files.write(path, lines.mkString("\n").getBytes(), StandardOpenOption.APPEND)
+      Files.write(path, bytesToWrite, StandardOpenOption.APPEND)
     } else {
-      Files.write(path, lines.mkString("\n").getBytes())
+      Files.write(path, bytesToWrite)
     }
   }
 }
