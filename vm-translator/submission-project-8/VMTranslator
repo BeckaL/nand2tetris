@@ -1,0 +1,3 @@
+ #!/usr/bin/env bash
+
+java -jar submission.jar "$1"
