@@ -1,0 +1,34 @@
+class Game {
+    field int score;
+    field Grid grid;
+
+    constructor Game new() {
+      let score = 0;
+      let grid = Grid.new();
+      return this;
+    }
+
+    method void dispose() {
+        do memory.deAlloc(this);
+        return;
+    }
+
+    method void drawInitialState() {
+      var int y;
+      var int x;
+
+      do Screen.setColor(true);
+      do Screen.drawRectangle(1, 1, 200, 200);
+      do Screen.setColor(false);
+
+      while (y < 4) {
+        while (x < 4) {
+          do Screen.drawRectangle(3 + (x * 50), 3 + (y * 50), 48 + (x * 50), 48 + (y * 50));
+          let x = x + 1;
+        }
+        let y = y + 1;
+        let x = 0;
+      }
+      return;
+    }
+}
