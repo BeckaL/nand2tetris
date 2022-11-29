@@ -1,0 +1,36 @@
+ class Grid {
+     field Array rows;
+
+    constructor Grid new() {
+        let rows = createInitialRows();
+        return this;
+    }
+
+    method Array getRows() {
+        return rows;
+    }
+
+    method Array createInitialRows() {
+        var Array rows;
+        var int counter;
+        let rows = Array.new(4);
+        while (counter < 4) {
+           let rows[counter] = Array.new(4);
+           let counter = counter + 1;
+        }
+        return rows;
+    }
+
+    method int getBlockValue(int x, int y) {
+        var Array row;
+        let row = rows[y];
+        return row[x];
+    }
+
+    method void setBlockValue(int x, int y, int value) {
+         var Array row;
+         let row = rows[y];
+         let row[x] = value;
+         return;
+    }
+ }

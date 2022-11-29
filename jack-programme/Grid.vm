@@ -1,0 +1,77 @@
+function Grid.new 0
+push constant 1
+call Memory.alloc 1
+pop pointer 0
+push pointer 0
+call Grid.createInitialRows 1
+pop this 0
+push pointer 0
+return
+function Grid.getRows 0
+push argument 0
+pop pointer 0
+push this 0
+return
+function Grid.createInitialRows 2
+push argument 0
+pop pointer 0
+push constant 4
+call Array.new 1
+pop local 0
+label WHILE_EXP0
+push local 1
+push constant 4
+lt
+not
+if-goto WHILE_END0
+push local 1
+push local 0
+add
+push constant 4
+call Array.new 1
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push local 1
+push constant 1
+add
+pop local 1
+goto WHILE_EXP0
+label WHILE_END0
+push local 0
+return
+function Grid.getBlockValue 1
+push argument 0
+pop pointer 0
+push argument 2
+push this 0
+add
+pop pointer 1
+push that 0
+pop local 0
+push argument 1
+push local 0
+add
+pop pointer 1
+push that 0
+return
+function Grid.setBlockValue 1
+push argument 0
+pop pointer 0
+push argument 2
+push this 0
+add
+pop pointer 1
+push that 0
+pop local 0
+push argument 1
+push local 0
+add
+push argument 3
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push constant 0
+return
