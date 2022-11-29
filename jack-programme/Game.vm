@@ -133,16 +133,24 @@ return
 function Game.moveBlock 3
 push argument 0
 pop pointer 0
-push argument 2
-pop local 0
+push argument 3
+push constant 1
+eq
+push argument 3
+push constant 2
+eq
+or
+if-goto IF_TRUE0
+goto IF_FALSE0
+label IF_TRUE0
 push argument 1
 pop local 1
 push argument 3
 push constant 1
 eq
-if-goto IF_TRUE0
-goto IF_FALSE0
-label IF_TRUE0
+if-goto IF_TRUE1
+goto IF_FALSE1
+label IF_TRUE1
 push argument 2
 push constant 1
 sub
@@ -151,48 +159,8 @@ push argument 2
 push constant 0
 gt
 pop local 2
-push local 2
-if-goto IF_TRUE1
-goto IF_FALSE1
-label IF_TRUE1
-push pointer 0
-push local 1
-push local 0
-call Game.getBlockValue 3
-push constant 0
-eq
-if-goto IF_TRUE2
-goto IF_FALSE2
-label IF_TRUE2
-push pointer 0
-push argument 1
-push argument 2
-push constant 0
-call Game.setBlockValue 4
-pop temp 0
-push pointer 0
-push local 1
-push local 0
-push argument 4
-call Game.setBlockValue 4
-pop temp 0
-push pointer 0
-push local 1
-push local 0
-push argument 3
-push argument 4
-call Game.moveBlock 5
-pop temp 0
-label IF_FALSE2
+goto IF_END1
 label IF_FALSE1
-goto IF_END0
-label IF_FALSE0
-push argument 3
-push constant 2
-eq
-if-goto IF_TRUE3
-goto IF_FALSE3
-label IF_TRUE3
 push argument 2
 push constant 1
 add
@@ -201,19 +169,50 @@ push argument 2
 push constant 3
 lt
 pop local 2
+label IF_END1
+goto IF_END0
+label IF_FALSE0
+push argument 2
+pop local 0
+push argument 3
+push constant 3
+eq
+if-goto IF_TRUE2
+goto IF_FALSE2
+label IF_TRUE2
+push argument 1
+push constant 1
+sub
+pop local 1
+push argument 1
+push constant 0
+gt
+pop local 2
+goto IF_END2
+label IF_FALSE2
+push argument 1
+push constant 1
+add
+pop local 1
+push argument 1
+push constant 3
+lt
+pop local 2
+label IF_END2
+label IF_END0
 push local 2
-if-goto IF_TRUE4
-goto IF_FALSE4
-label IF_TRUE4
+if-goto IF_TRUE3
+goto IF_FALSE3
+label IF_TRUE3
 push pointer 0
 push local 1
 push local 0
 call Game.getBlockValue 3
 push constant 0
 eq
-if-goto IF_TRUE5
-goto IF_FALSE5
-label IF_TRUE5
+if-goto IF_TRUE4
+goto IF_FALSE4
+label IF_TRUE4
 push pointer 0
 push argument 1
 push argument 2
@@ -233,10 +232,8 @@ push argument 3
 push argument 4
 call Game.moveBlock 5
 pop temp 0
-label IF_FALSE5
 label IF_FALSE4
 label IF_FALSE3
-label IF_END0
 push constant 0
 return
 function Game.getBlockValue 1
@@ -390,7 +387,114 @@ add
 pop local 1
 goto WHILE_EXP2
 label WHILE_END2
+goto IF_END2
 label IF_FALSE2
+push argument 1
+push constant 3
+eq
+if-goto IF_TRUE4
+goto IF_FALSE4
+label IF_TRUE4
+label WHILE_EXP4
+push local 0
+push constant 4
+lt
+not
+if-goto WHILE_END4
+push constant 0
+pop local 1
+label WHILE_EXP5
+push local 1
+push constant 4
+lt
+not
+if-goto WHILE_END5
+push pointer 0
+push local 0
+push local 1
+call Game.getBlockValue 3
+pop local 3
+push local 3
+push constant 0
+eq
+not
+if-goto IF_TRUE5
+goto IF_FALSE5
+label IF_TRUE5
+push pointer 0
+push local 0
+push local 1
+push argument 1
+push local 3
+call Game.moveBlock 5
+pop temp 0
+label IF_FALSE5
+push local 1
+push constant 1
+add
+pop local 1
+goto WHILE_EXP5
+label WHILE_END5
+push local 0
+push constant 1
+add
+pop local 0
+goto WHILE_EXP4
+label WHILE_END4
+goto IF_END4
+label IF_FALSE4
+label WHILE_EXP6
+push local 0
+push constant 4
+lt
+not
+if-goto WHILE_END6
+push constant 0
+pop local 1
+label WHILE_EXP7
+push local 1
+push constant 4
+lt
+not
+if-goto WHILE_END7
+push pointer 0
+push constant 3
+push local 0
+sub
+push local 1
+call Game.getBlockValue 3
+pop local 3
+push local 3
+push constant 0
+eq
+not
+if-goto IF_TRUE6
+goto IF_FALSE6
+label IF_TRUE6
+push pointer 0
+push constant 3
+push local 0
+sub
+push local 1
+push argument 1
+push local 3
+call Game.moveBlock 5
+pop temp 0
+label IF_FALSE6
+push local 1
+push constant 1
+add
+pop local 1
+goto WHILE_EXP7
+label WHILE_END7
+push local 0
+push constant 1
+add
+pop local 0
+goto WHILE_EXP6
+label WHILE_END6
+label IF_END4
+label IF_END2
 label IF_END0
 push constant 0
 return
