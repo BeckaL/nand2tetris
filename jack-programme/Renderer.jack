@@ -9,6 +9,9 @@ class Renderer {
       let blockPixelHeight = 55;
       let blockCursorWidth = 7; // width / 8
       let blockCursorHeight = 5; // height / 11
+      do Screen.setColor(true);
+      do Screen.drawRectangle(0, 0, (blockPixelWidth * 4 + 2), (blockPixelHeight * 4 + 2));
+      do Screen.setColor(false);
       return this;
     }
 
@@ -22,10 +25,6 @@ class Renderer {
       var int x;
       var Array row;
       var int blockValue;
-
-      do Screen.setColor(true);
-      do Screen.drawRectangle(0, 0, (blockPixelWidth * 4 + 2), (blockPixelHeight * 4 + 2));
-      do Screen.setColor(false);
 
       while (y < 4) {
         let row = rows[y];

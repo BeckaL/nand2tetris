@@ -10,13 +10,86 @@ class Game {
       let score = 0;
       let rows = createInitialRows();
       let rowToInsert = rows[3];
-      let rowToInsert[3] = 2;
-      let rowToInsert[2] = 2048;
+      do setBlockValue(3, 3, 2);
+      do setBlockValue(2, 3, 2048);
       return this;
     }
 
     method void dispose() {
         do memory.deAlloc(this);
+        return;
+    }
+
+     method void run() {
+          var char key;
+          var boolean quit;
+          var int direction;
+
+          let quit = false;
+          do renderer.drawState(rows);
+
+          while (~quit) {
+             while (key = 0) {
+                let key = Keyboard.keyPressed();
+             }
+             if (key = 81)  { let quit = true; }     // q => quit
+             if (key = 131) { let direction = 1; }   // up arrow
+             if (key = 133) { let direction = 2; }   // down arrow
+             if (key = 130) { let direction = 3; }   // left arrow
+             if (key = 132) { let direction = 4; }   // right arrow
+
+             while (~(key = 0)) {
+                let key = Keyboard.keyPressed();
+                do moveBlocks(direction);
+                do renderer.drawState(rows);
+             }
+         }
+         return;
+       }
+
+    method void moveBlock(int x, int y, int direction, int blockValue) {
+        if (direction = 1) {
+            if (y > 0) {
+            if (getBlockValue(x, y - 1) = 0) {
+               do setBlockValue(x, y, 0);
+               do setBlockValue(x, y - 1, blockValue);
+               do moveBlock(x, y - 1, direction, blockValue); //keep going, might be more to move
+            }
+           }
+        }
+        return;
+    }
+
+    method int getBlockValue(int x, int y) {
+        var Array row;
+        let row = rows[y];
+        return row[x];
+    }
+
+    method void setBlockValue(int x, int y, int value) {
+         var Array row;
+         let row = rows[y];
+         let row[x] = value;
+         return;
+    }
+
+    method void moveBlocks(int direction) {
+        var int xCounter;
+        var int yCounter;
+        var int y;
+        var int blockValue;
+
+        if (direction = 1) {
+            while (yCounter < 4) {
+                let xCounter = 0;
+                while (xCounter < 4) {
+                    let blockValue = getBlockValue(xCounter, yCounter);
+                    if (~(blockValue = 0)) { do moveBlock(xCounter, yCounter, 1, blockValue); }
+                    let xCounter = xCounter + 1;
+                }
+                let yCounter = yCounter + 1;
+            }
+        }
         return;
     }
 
@@ -29,12 +102,5 @@ class Game {
            let counter = counter + 1;
         }
         return rows;
-    }
-
-
-
-    method void drawInitialState() {
-      do renderer.drawState(rows);
-      return;
     }
 }

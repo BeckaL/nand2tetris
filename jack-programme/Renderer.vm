@@ -10,19 +10,6 @@ push constant 7
 pop this 2
 push constant 5
 pop this 3
-push pointer 0
-return
-function Renderer.dispose 0
-push argument 0
-pop pointer 0
-push pointer 0
-call memory.deAlloc 1
-pop temp 0
-push constant 0
-return
-function Renderer.drawState 4
-push argument 0
-pop pointer 0
 push constant 0
 not
 call Screen.setColor 1
@@ -44,6 +31,19 @@ pop temp 0
 push constant 0
 call Screen.setColor 1
 pop temp 0
+push pointer 0
+return
+function Renderer.dispose 0
+push argument 0
+pop pointer 0
+push pointer 0
+call memory.deAlloc 1
+pop temp 0
+push constant 0
+return
+function Renderer.drawState 4
+push argument 0
+pop pointer 0
 label WHILE_EXP0
 push local 0
 push constant 4

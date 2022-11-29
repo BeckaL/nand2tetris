@@ -15,22 +15,18 @@ add
 pop pointer 1
 push that 0
 pop local 0
+push pointer 0
 push constant 3
-push local 0
-add
+push constant 3
 push constant 2
+call Game.setBlockValue 4
 pop temp 0
-pop pointer 1
-push temp 0
-pop that 0
+push pointer 0
 push constant 2
-push local 0
-add
+push constant 3
 push constant 2048
+call Game.setBlockValue 4
 pop temp 0
-pop pointer 1
-push temp 0
-pop that 0
 push pointer 0
 return
 function Game.dispose 0
@@ -39,6 +35,245 @@ pop pointer 0
 push pointer 0
 call memory.deAlloc 1
 pop temp 0
+push constant 0
+return
+function Game.run 3
+push argument 0
+pop pointer 0
+push constant 0
+pop local 1
+push this 2
+push this 1
+call Renderer.drawState 2
+pop temp 0
+label WHILE_EXP0
+push local 1
+not
+not
+if-goto WHILE_END0
+label WHILE_EXP1
+push local 0
+push constant 0
+eq
+not
+if-goto WHILE_END1
+call Keyboard.keyPressed 0
+pop local 0
+goto WHILE_EXP1
+label WHILE_END1
+push local 0
+push constant 81
+eq
+if-goto IF_TRUE0
+goto IF_FALSE0
+label IF_TRUE0
+push constant 0
+not
+pop local 1
+label IF_FALSE0
+push local 0
+push constant 131
+eq
+if-goto IF_TRUE1
+goto IF_FALSE1
+label IF_TRUE1
+push constant 1
+pop local 2
+label IF_FALSE1
+push local 0
+push constant 133
+eq
+if-goto IF_TRUE2
+goto IF_FALSE2
+label IF_TRUE2
+push constant 2
+pop local 2
+label IF_FALSE2
+push local 0
+push constant 130
+eq
+if-goto IF_TRUE3
+goto IF_FALSE3
+label IF_TRUE3
+push constant 3
+pop local 2
+label IF_FALSE3
+push local 0
+push constant 132
+eq
+if-goto IF_TRUE4
+goto IF_FALSE4
+label IF_TRUE4
+push constant 4
+pop local 2
+label IF_FALSE4
+label WHILE_EXP2
+push local 0
+push constant 0
+eq
+not
+not
+if-goto WHILE_END2
+call Keyboard.keyPressed 0
+pop local 0
+push pointer 0
+push local 2
+call Game.moveBlocks 2
+pop temp 0
+push this 2
+push this 1
+call Renderer.drawState 2
+pop temp 0
+goto WHILE_EXP2
+label WHILE_END2
+goto WHILE_EXP0
+label WHILE_END0
+push constant 0
+return
+function Game.moveBlock 0
+push argument 0
+pop pointer 0
+push argument 3
+push constant 1
+eq
+if-goto IF_TRUE0
+goto IF_FALSE0
+label IF_TRUE0
+push argument 2
+push constant 0
+gt
+if-goto IF_TRUE1
+goto IF_FALSE1
+label IF_TRUE1
+push pointer 0
+push argument 1
+push argument 2
+push constant 1
+sub
+call Game.getBlockValue 3
+push constant 0
+eq
+if-goto IF_TRUE2
+goto IF_FALSE2
+label IF_TRUE2
+push pointer 0
+push argument 1
+push argument 2
+push constant 0
+call Game.setBlockValue 4
+pop temp 0
+push pointer 0
+push argument 1
+push argument 2
+push constant 1
+sub
+push argument 4
+call Game.setBlockValue 4
+pop temp 0
+push pointer 0
+push argument 1
+push argument 2
+push constant 1
+sub
+push argument 3
+push argument 4
+call Game.moveBlock 5
+pop temp 0
+label IF_FALSE2
+label IF_FALSE1
+label IF_FALSE0
+push constant 0
+return
+function Game.getBlockValue 1
+push argument 0
+pop pointer 0
+push argument 2
+push this 1
+add
+pop pointer 1
+push that 0
+pop local 0
+push argument 1
+push local 0
+add
+pop pointer 1
+push that 0
+return
+function Game.setBlockValue 1
+push argument 0
+pop pointer 0
+push argument 2
+push this 1
+add
+pop pointer 1
+push that 0
+pop local 0
+push argument 1
+push local 0
+add
+push argument 3
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push constant 0
+return
+function Game.moveBlocks 4
+push argument 0
+pop pointer 0
+push argument 1
+push constant 1
+eq
+if-goto IF_TRUE0
+goto IF_FALSE0
+label IF_TRUE0
+label WHILE_EXP0
+push local 1
+push constant 4
+lt
+not
+if-goto WHILE_END0
+push constant 0
+pop local 0
+label WHILE_EXP1
+push local 0
+push constant 4
+lt
+not
+if-goto WHILE_END1
+push pointer 0
+push local 0
+push local 1
+call Game.getBlockValue 3
+pop local 3
+push local 3
+push constant 0
+eq
+not
+if-goto IF_TRUE1
+goto IF_FALSE1
+label IF_TRUE1
+push pointer 0
+push local 0
+push local 1
+push constant 1
+push local 3
+call Game.moveBlock 5
+pop temp 0
+label IF_FALSE1
+push local 0
+push constant 1
+add
+pop local 0
+goto WHILE_EXP1
+label WHILE_END1
+push local 1
+push constant 1
+add
+pop local 1
+goto WHILE_EXP0
+label WHILE_END0
+label IF_FALSE0
 push constant 0
 return
 function Game.createInitialRows 2
@@ -69,13 +304,4 @@ pop local 1
 goto WHILE_EXP0
 label WHILE_END0
 push local 0
-return
-function Game.drawInitialState 0
-push argument 0
-pop pointer 0
-push this 2
-push this 1
-call Renderer.drawState 2
-pop temp 0
-push constant 0
 return
