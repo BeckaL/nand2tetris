@@ -1,10 +1,17 @@
 class Game {
     field int score;
-    field Grid grid;
+    field Array rows;
+    field Renderer renderer;
 
     constructor Game new() {
+      var Array rowToInsert;
+
+      let renderer = Renderer.new();
       let score = 0;
-      let grid = Grid.new();
+      let rows = createInitialRows();
+      let rowToInsert = rows[3];
+      let rowToInsert[3] = 2;
+      let rowToInsert[2] = 2048;
       return this;
     }
 
@@ -13,22 +20,21 @@ class Game {
         return;
     }
 
-    method void drawInitialState() {
-      var int y;
-      var int x;
-
-      do Screen.setColor(true);
-      do Screen.drawRectangle(1, 1, 200, 200);
-      do Screen.setColor(false);
-
-      while (y < 4) {
-        while (x < 4) {
-          do Screen.drawRectangle(3 + (x * 50), 3 + (y * 50), 48 + (x * 50), 48 + (y * 50));
-          let x = x + 1;
+    method Array createInitialRows() {
+        var Array rows;
+        var int counter;
+        let rows = Array.new(4);
+        while (counter < 4) {
+           let rows[counter] = Array.new(4);
+           let counter = counter + 1;
         }
-        let y = y + 1;
-        let x = 0;
-      }
+        return rows;
+    }
+
+
+
+    method void drawInitialState() {
+      do renderer.drawState(rows);
       return;
     }
 }

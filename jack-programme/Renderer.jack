@@ -1,0 +1,62 @@
+class Renderer {
+    field int blockPixelWidth;
+    field int blockPixelHeight;
+    field int blockCursorWidth;
+    field int blockCursorHeight;
+
+    constructor Renderer new() {
+      let blockPixelWidth = 56;
+      let blockPixelHeight = 55;
+      let blockCursorWidth = 7; // width / 8
+      let blockCursorHeight = 5; // height / 11
+      return this;
+    }
+
+    method void dispose() {
+        do memory.deAlloc(this);
+        return;
+    }
+
+    method void drawState(Array rows) {
+      var int y;
+      var int x;
+      var Array row;
+      var int blockValue;
+
+      do Screen.setColor(true);
+      do Screen.drawRectangle(0, 0, (blockPixelWidth * 4 + 2), (blockPixelHeight * 4 + 2));
+      do Screen.setColor(false);
+
+      while (y < 4) {
+        let row = rows[y];
+        while (x < 4) {
+          let blockValue = row[x];
+          do drawBlock(x, y, blockValue);
+          let x = x + 1;
+        }
+        let y = y + 1;
+        let x = 0;
+      }
+      return;
+    }
+
+    method void drawBlock(int x, int y, int blockValue) {
+       var int xOffset;
+       var int baseX;
+       var int baseY;
+       let baseX = x * blockPixelWidth;
+       let baseY = y * blockPixelHeight;
+
+       do Screen.drawRectangle(3 + baseX, 3 + baseY, blockPixelWidth - 2 + baseX, blockPixelHeight - 2 + baseY);
+       if (~(blockValue = 0)) {
+         if (blockValue < 100) {
+            let xOffset = 3;
+         } else {
+            let xOffset = 2;
+         }
+         do Output.moveCursor(2 + (y * blockCursorHeight), xOffset + (x * blockCursorWidth));
+         do Output.printInt(blockValue);
+       }
+       return;
+    }
+}
