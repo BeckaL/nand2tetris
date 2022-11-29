@@ -6,9 +6,7 @@
         return this;
     }
 
-    method Array getRows() {
-        return rows;
-    }
+    method Array getRows() { return rows; }
 
     method Array createInitialRows() {
         var Array rows;

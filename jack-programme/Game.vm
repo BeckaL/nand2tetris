@@ -20,6 +20,12 @@ push constant 2
 push constant 2048
 call Grid.setBlockValue 4
 pop temp 0
+push this 2
+push constant 1
+push constant 1
+push constant 2
+call Grid.setBlockValue 4
+pop temp 0
 push pointer 0
 return
 function Game.dispose 0
@@ -113,6 +119,15 @@ pop local 0
 push pointer 0
 push local 2
 call Game.moveBlocks 2
+pop temp 0
+push this 1
+push this 2
+call Grid.getRows 1
+call Renderer.drawState 2
+pop temp 0
+push pointer 0
+push local 2
+call Game.smashBlocks 2
 pop temp 0
 push this 1
 push this 2
@@ -229,6 +244,116 @@ call Game.moveBlock 5
 pop temp 0
 label IF_FALSE4
 label IF_FALSE3
+push constant 0
+return
+function Game.smashBlocks 8
+push argument 0
+pop pointer 0
+push constant 1
+pop local 0
+label WHILE_EXP0
+push local 0
+push constant 4
+lt
+not
+if-goto WHILE_END0
+push constant 0
+pop local 1
+label WHILE_EXP1
+push local 1
+push constant 3
+lt
+not
+if-goto WHILE_END1
+push argument 1
+push constant 1
+eq
+push argument 1
+push constant 2
+eq
+or
+if-goto IF_TRUE0
+goto IF_FALSE0
+label IF_TRUE0
+push local 1
+pop local 2
+push local 2
+pop local 4
+push argument 1
+push constant 1
+eq
+if-goto IF_TRUE1
+goto IF_FALSE1
+label IF_TRUE1
+push local 0
+pop local 3
+push local 0
+push constant 1
+sub
+pop local 5
+goto IF_END1
+label IF_FALSE1
+push constant 4
+push local 0
+sub
+pop local 3
+push constant 3
+push local 0
+sub
+pop local 5
+label IF_END1
+push this 2
+push local 2
+push local 3
+call Grid.getBlockValue 3
+pop local 6
+push this 2
+push local 4
+push local 5
+call Grid.getBlockValue 3
+pop local 7
+label IF_FALSE0
+push local 6
+push constant 0
+eq
+not
+if-goto IF_TRUE2
+goto IF_FALSE2
+label IF_TRUE2
+push local 6
+push local 7
+eq
+if-goto IF_TRUE3
+goto IF_FALSE3
+label IF_TRUE3
+push this 2
+push local 2
+push local 3
+push constant 0
+call Grid.setBlockValue 4
+pop temp 0
+push this 2
+push local 4
+push local 5
+push local 6
+push constant 2
+call Math.multiply 2
+call Grid.setBlockValue 4
+pop temp 0
+label IF_FALSE3
+label IF_FALSE2
+push local 1
+push constant 1
+add
+pop local 1
+goto WHILE_EXP1
+label WHILE_END1
+push local 0
+push constant 1
+add
+pop local 0
+goto WHILE_EXP0
+label WHILE_END0
 push constant 0
 return
 function Game.moveBlocks 4

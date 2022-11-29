@@ -9,6 +9,7 @@ class Game {
       let grid = Grid.new();
       do grid.setBlockValue(0, 3, 2);
       do grid.setBlockValue(2, 2, 2048);
+      do grid.setBlockValue(1, 1, 2);
       return this;
     }
 
@@ -18,28 +19,30 @@ class Game {
     }
 
      method void run() {
-          var char key;
-          var boolean quit;
-          var int direction;
+         var char key;
+         var boolean quit;
+         var int direction;
 
-          let quit = false;
-          do renderer.drawState(grid.getRows());
+         let quit = false;
+         do renderer.drawState(grid.getRows());
 
-          while (~quit) {
-             while (key = 0) {
-                let key = Keyboard.keyPressed();
-             }
-             if (key = 81)  { let quit = true; }     // q => quit
-             if (key = 131) { let direction = 1; }   // up arrow
-             if (key = 133) { let direction = 2; }   // down arrow
-             if (key = 130) { let direction = 3; }   // left arrow
-             if (key = 132) { let direction = 4; }   // right arrow
+         while (~quit) {
+            while (key = 0) {
+               let key = Keyboard.keyPressed();
+            }
+            if (key = 81)  { let quit = true; }     // q => quit
+            if (key = 131) { let direction = 1; }   // up arrow
+            if (key = 133) { let direction = 2; }   // down arrow
+            if (key = 130) { let direction = 3; }   // left arrow
+            if (key = 132) { let direction = 4; }   // right arrow
 
-             while (~(key = 0)) {
-                let key = Keyboard.keyPressed();
-                do moveBlocks(direction);
-                do renderer.drawState(grid.getRows());
-             }
+            while (~(key = 0)) {
+               let key = Keyboard.keyPressed();
+               do moveBlocks(direction);
+               do renderer.drawState(grid.getRows());
+               do smashBlocks(direction);
+               do renderer.drawState(grid.getRows());
+            }
          }
          return;
        }
@@ -76,6 +79,48 @@ class Game {
                do grid.setBlockValue(nextX, nextY, blockValue);
                do moveBlock(nextX, nextY, direction, blockValue); //keep going, might be more to move
             }
+        }
+        return;
+    }
+
+    //* after first move, smash blocks together if they are the same value
+    method void smashBlocks(int direction) {
+        var int counterOne;
+        var int counterTwo;
+        var int x;
+        var int y;
+        var int neighbourX;
+        var int neighbourY;
+        var int block;
+        var int neighbour;
+
+        let counterOne = 1;
+
+        while ( counterOne < 4 ) {
+            let counterTwo = 0;
+            while ( counterTwo < 3 ) {
+                if ( ( direction = 1 ) | ( direction = 2 )) {
+                    let x = counterTwo;
+                    let neighbourX = x;
+                    if ( direction = 1) {
+                        let y = counterOne;
+                        let neighbourY = counterOne - 1;
+                    } else {
+                        let y = 4 - counterOne;
+                        let neighbourY = 3 - counterOne;
+                    }
+                    let block = grid.getBlockValue(x, y);
+                    let neighbour = grid.getBlockValue(neighbourX, neighbourY);
+                }
+                if ( ~( block = 0) ) {
+                    if (block = neighbour) {
+                        do grid.setBlockValue(x, y, 0);
+                        do grid.setBlockValue(neighbourX, neighbourY, block * 2);
+                    }
+                }
+                let counterTwo = counterTwo + 1;
+            }
+            let counterOne = counterOne + 1;
         }
         return;
     }
