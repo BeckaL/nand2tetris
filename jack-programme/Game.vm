@@ -130,9 +130,13 @@ goto WHILE_EXP0
 label WHILE_END0
 push constant 0
 return
-function Game.moveBlock 2
+function Game.moveBlock 3
 push argument 0
 pop pointer 0
+push argument 2
+pop local 0
+push argument 1
+pop local 1
 push argument 3
 push constant 1
 eq
@@ -140,16 +144,20 @@ if-goto IF_TRUE0
 goto IF_FALSE0
 label IF_TRUE0
 push argument 2
+push constant 1
+sub
+pop local 0
+push argument 2
 push constant 0
 gt
+pop local 2
+push local 2
 if-goto IF_TRUE1
 goto IF_FALSE1
 label IF_TRUE1
 push pointer 0
-push argument 1
-push argument 2
-push constant 1
-sub
+push local 1
+push local 0
 call Game.getBlockValue 3
 push constant 0
 eq
@@ -163,18 +171,14 @@ push constant 0
 call Game.setBlockValue 4
 pop temp 0
 push pointer 0
-push argument 1
-push argument 2
-push constant 1
-sub
+push local 1
+push local 0
 push argument 4
 call Game.setBlockValue 4
 pop temp 0
 push pointer 0
-push argument 1
-push argument 2
-push constant 1
-sub
+push local 1
+push local 0
 push argument 3
 push argument 4
 call Game.moveBlock 5
@@ -190,16 +194,20 @@ if-goto IF_TRUE3
 goto IF_FALSE3
 label IF_TRUE3
 push argument 2
+push constant 1
+add
+pop local 0
+push argument 2
 push constant 3
 lt
+pop local 2
+push local 2
 if-goto IF_TRUE4
 goto IF_FALSE4
 label IF_TRUE4
 push pointer 0
-push argument 1
-push argument 2
-push constant 1
-add
+push local 1
+push local 0
 call Game.getBlockValue 3
 push constant 0
 eq
@@ -213,18 +221,14 @@ push constant 0
 call Game.setBlockValue 4
 pop temp 0
 push pointer 0
-push argument 1
-push argument 2
-push constant 1
-add
+push local 1
+push local 0
 push argument 4
 call Game.setBlockValue 4
 pop temp 0
 push pointer 0
-push argument 1
-push argument 2
-push constant 1
-add
+push local 1
+push local 0
 push argument 3
 push argument 4
 call Game.moveBlock 5

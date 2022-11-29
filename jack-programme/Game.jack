@@ -48,23 +48,32 @@ class Game {
        }
 
     method void moveBlock(int x, int y, int direction, int blockValue) {
-        var int next;
+        var int nextY;
+        var int nextX;
         var boolean continue;
+
+        let nextY = y; // initialize at y for the case where we move vertically
+        let nextX = x; // initialize at x for the case where we move horizontally
+
         if (direction = 1) {
-            if ( y > 0 ) {
-                if (getBlockValue(x, y - 1) = 0) {
+            let nextY = y - 1;
+            let continue = y > 0;
+            if ( continue ) {
+                if (getBlockValue(nextX, nextY) = 0) {
                    do setBlockValue(x, y, 0);
-                   do setBlockValue(x, y - 1, blockValue);
-                   do moveBlock(x, y - 1, direction, blockValue); //keep going, might be more to move
+                   do setBlockValue(nextX, nextY, blockValue);
+                   do moveBlock(nextX, nextY, direction, blockValue); //keep going, might be more to move
                 }
            }
         } else {
             if (direction = 2) { // move blocks down
-                if ( y < 3 ) {
-                    if (getBlockValue(x, y + 1) = 0) {
+                let nextY = y + 1;
+                let continue = y < 3;
+                if ( continue ) {
+                    if (getBlockValue(nextX, nextY) = 0) {
                        do setBlockValue(x, y, 0);
-                       do setBlockValue(x, y + 1, blockValue);
-                       do moveBlock(x, y + 1, direction, blockValue); //keep going, might be more to move
+                       do setBlockValue(nextX, nextY, blockValue);
+                       do moveBlock(nextX, nextY, direction, blockValue); //keep going, might be more to move
                     }
                 }
             }
