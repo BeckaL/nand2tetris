@@ -1,0 +1,23 @@
+class Coordinate {
+    field int x;
+    field int y;
+
+    constructor Coordinate new(int xVal, int yVal) {
+        let x = xVal;
+        let y = yVal;
+        return this;
+    }
+
+    method void dispose() {
+        do memory.deAlloc(this);
+        return;
+    }
+
+    method int getX() { return x; }
+    method int getY() { return y; }
+
+    method Coordinate decreaseX() { return Coordinate.new(x - 1, y); }
+    method Coordinate increaseX() { return Coordinate.new(x + 1, y); }
+    method Coordinate decreaseY() { return Coordinate.new(x, y - 1); }
+    method Coordinate increaseY() { return Coordinate.new(x, y + 1); }
+}

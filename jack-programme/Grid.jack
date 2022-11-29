@@ -19,16 +19,16 @@
         return rows;
     }
 
-    method int getBlockValue(int x, int y) {
+    method int getBlockValue(Coordinate c) {
         var Array row;
-        let row = rows[y];
-        return row[x];
+        let row = rows[c.getY()];
+        return row[c.getX()];
     }
 
-    method void setBlockValue(int x, int y, int value) {
-         var Array row;
-         let row = rows[y];
-         let row[x] = value;
-         return;
+    method void setBlockValue(Coordinate c, int value) {
+        var Array row;
+        let row = rows[c.getY()];
+        let row[c.getX()] = value;
+        return;
     }
  }

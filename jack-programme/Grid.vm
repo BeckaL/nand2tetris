@@ -44,13 +44,15 @@ return
 function Grid.getBlockValue 1
 push argument 0
 pop pointer 0
-push argument 2
+push argument 1
+call Coordinate.getY 1
 push this 0
 add
 pop pointer 1
 push that 0
 pop local 0
 push argument 1
+call Coordinate.getX 1
 push local 0
 add
 pop pointer 1
@@ -59,16 +61,18 @@ return
 function Grid.setBlockValue 1
 push argument 0
 pop pointer 0
-push argument 2
+push argument 1
+call Coordinate.getY 1
 push this 0
 add
 pop pointer 1
 push that 0
 pop local 0
 push argument 1
+call Coordinate.getX 1
 push local 0
 add
-push argument 3
+push argument 2
 pop temp 0
 pop pointer 1
 push temp 0

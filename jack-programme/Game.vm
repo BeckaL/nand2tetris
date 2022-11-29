@@ -11,20 +11,23 @@ pop this 2
 push this 2
 push constant 0
 push constant 3
+call Coordinate.new 2
 push constant 2
-call Grid.setBlockValue 4
+call Grid.setBlockValue 3
 pop temp 0
 push this 2
 push constant 2
 push constant 2
+call Coordinate.new 2
 push constant 2048
-call Grid.setBlockValue 4
+call Grid.setBlockValue 3
 pop temp 0
 push this 2
 push constant 1
 push constant 1
+call Coordinate.new 2
 push constant 2
-call Grid.setBlockValue 4
+call Grid.setBlockValue 3
 pop temp 0
 push pointer 0
 return
@@ -140,84 +143,79 @@ goto WHILE_EXP0
 label WHILE_END0
 push constant 0
 return
-function Game.moveBlock 3
+function Game.moveBlock 2
 push argument 0
 pop pointer 0
-push argument 3
+push argument 2
 push constant 1
 eq
-push argument 3
+push argument 2
 push constant 2
 eq
 or
 if-goto IF_TRUE0
 goto IF_FALSE0
 label IF_TRUE0
-push argument 1
-pop local 1
-push argument 3
+push argument 2
 push constant 1
 eq
 if-goto IF_TRUE1
 goto IF_FALSE1
 label IF_TRUE1
-push argument 2
-push constant 1
-sub
+push argument 1
+call Coordinate.decreaseY 1
 pop local 0
-push argument 2
+push argument 1
+call Coordinate.getY 1
 push constant 0
 gt
-pop local 2
+pop local 1
 goto IF_END1
 label IF_FALSE1
-push argument 2
-push constant 1
-add
+push argument 1
+call Coordinate.increaseY 1
 pop local 0
-push argument 2
+push argument 1
+call Coordinate.getY 1
 push constant 3
 lt
-pop local 2
+pop local 1
 label IF_END1
 goto IF_END0
 label IF_FALSE0
 push argument 2
-pop local 0
-push argument 3
 push constant 3
 eq
 if-goto IF_TRUE2
 goto IF_FALSE2
 label IF_TRUE2
 push argument 1
-push constant 1
-sub
-pop local 1
+call Coordinate.decreaseX 1
+pop local 0
 push argument 1
+call Coordinate.getX 1
 push constant 0
 gt
-pop local 2
+pop local 1
 goto IF_END2
 label IF_FALSE2
 push argument 1
-push constant 1
-add
-pop local 1
+call Coordinate.increaseX 1
+pop local 0
 push argument 1
+call Coordinate.getX 1
 push constant 3
 lt
-pop local 2
+pop local 1
 label IF_END2
 label IF_END0
-push local 2
+push local 1
 if-goto IF_TRUE3
 goto IF_FALSE3
 label IF_TRUE3
 push this 2
-push local 1
 push local 0
-call Grid.getBlockValue 3
+call Grid.getBlockValue 2
 push constant 0
 eq
 if-goto IF_TRUE4
@@ -225,22 +223,19 @@ goto IF_FALSE4
 label IF_TRUE4
 push this 2
 push argument 1
-push argument 2
 push constant 0
-call Grid.setBlockValue 4
+call Grid.setBlockValue 3
 pop temp 0
 push this 2
-push local 1
-push local 0
-push argument 4
-call Grid.setBlockValue 4
-pop temp 0
-push pointer 0
-push local 1
 push local 0
 push argument 3
-push argument 4
-call Game.moveBlock 5
+call Grid.setBlockValue 3
+pop temp 0
+push pointer 0
+push local 0
+push argument 2
+push argument 3
+call Game.moveBlock 4
 pop temp 0
 label IF_FALSE4
 label IF_FALSE3
@@ -305,12 +300,14 @@ label IF_END1
 push this 2
 push local 2
 push local 3
-call Grid.getBlockValue 3
+call Coordinate.new 2
+call Grid.getBlockValue 2
 pop local 6
 push this 2
 push local 4
 push local 5
-call Grid.getBlockValue 3
+call Coordinate.new 2
+call Grid.getBlockValue 2
 pop local 7
 label IF_FALSE0
 push local 6
@@ -329,16 +326,18 @@ label IF_TRUE3
 push this 2
 push local 2
 push local 3
+call Coordinate.new 2
 push constant 0
-call Grid.setBlockValue 4
+call Grid.setBlockValue 3
 pop temp 0
 push this 2
 push local 4
 push local 5
+call Coordinate.new 2
 push local 6
 push constant 2
 call Math.multiply 2
-call Grid.setBlockValue 4
+call Grid.setBlockValue 3
 pop temp 0
 label IF_FALSE3
 label IF_FALSE2
@@ -356,7 +355,7 @@ goto WHILE_EXP0
 label WHILE_END0
 push constant 0
 return
-function Game.moveBlocks 4
+function Game.moveBlocks 3
 push argument 0
 pop pointer 0
 label WHILE_EXP0
@@ -383,27 +382,27 @@ or
 if-goto IF_TRUE0
 goto IF_FALSE0
 label IF_TRUE0
-push local 1
-pop local 3
 push argument 1
 push constant 1
 eq
 if-goto IF_TRUE1
 goto IF_FALSE1
 label IF_TRUE1
+push local 1
 push local 0
+call Coordinate.new 2
 pop local 2
 goto IF_END1
 label IF_FALSE1
+push local 1
 push constant 3
 push local 0
 sub
+call Coordinate.new 2
 pop local 2
 label IF_END1
 goto IF_END0
 label IF_FALSE0
-push local 1
-pop local 2
 push argument 1
 push constant 3
 eq
@@ -411,20 +410,23 @@ if-goto IF_TRUE2
 goto IF_FALSE2
 label IF_TRUE2
 push local 0
-pop local 3
+push local 1
+call Coordinate.new 2
+pop local 2
 goto IF_END2
 label IF_FALSE2
 push constant 3
 push local 0
 sub
-pop local 3
+push local 1
+call Coordinate.new 2
+pop local 2
 label IF_END2
 label IF_END0
 push pointer 0
-push local 3
 push local 2
 push argument 1
-call Game.moveBlockIfSpace 4
+call Game.moveBlockIfSpace 3
 pop temp 0
 push local 1
 push constant 1
@@ -445,8 +447,7 @@ push argument 0
 pop pointer 0
 push this 2
 push argument 1
-push argument 2
-call Grid.getBlockValue 3
+call Grid.getBlockValue 2
 pop local 0
 push local 0
 push constant 0
@@ -458,9 +459,8 @@ label IF_TRUE0
 push pointer 0
 push argument 1
 push argument 2
-push argument 3
 push local 0
-call Game.moveBlock 5
+call Game.moveBlock 4
 pop temp 0
 label IF_FALSE0
 push constant 0

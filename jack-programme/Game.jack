@@ -7,9 +7,9 @@ class Game {
       let renderer = Renderer.new();
       let score = 0;
       let grid = Grid.new();
-      do grid.setBlockValue(0, 3, 2);
-      do grid.setBlockValue(2, 2, 2048);
-      do grid.setBlockValue(1, 1, 2);
+      do grid.setBlockValue(Coordinate.new(0, 3), 2);
+      do grid.setBlockValue(Coordinate.new(2, 2), 2048);
+      do grid.setBlockValue(Coordinate.new(1, 1), 2);
       return this;
     }
 
@@ -48,36 +48,33 @@ class Game {
        }
 
     //* moves block if the block next to it in direction is empty. Keeps going for the block until it can move no more */
-    method void moveBlock(int x, int y, int direction, int blockValue) {
-        var int nextY;
-        var int nextX;
+    method void moveBlock(Coordinate currentCoord, int direction, int blockValue) {
+        var Coordinate nextCoordinate;
         var boolean continue;
 
         if (( direction = 1 ) | ( direction = 2 )) { // move up or down
-            let nextX = x;
             if ( direction = 1 ) { // moving up (decreasing y)
-                let nextY = y - 1;
-                let continue = y > 0;
+                let nextCoordinate = currentCoord.decreaseY();
+                let continue = currentCoord.getY() > 0;
             } else { // moving down (increasing y)
-                let nextY = y + 1;
-                let continue = y < 3;
+                let nextCoordinate = currentCoord.increaseY();
+                let continue = currentCoord.getY() < 3;
             }
         } else { // move left or right
-            let nextY = y;
             if ( direction = 3 ) { // moving left (decreasing x)
-                let nextX = x - 1;
-                let continue = x > 0;
+                let nextCoordinate = currentCoord.decreaseX();
+                let continue = currentCoord.getX() > 0;
             } else { //moving right (increasing x)
-                let nextX = x + 1;
-                let continue = x < 3;
+                let nextCoordinate = currentCoord.increaseX();
+                let continue = currentCoord.getX() < 3;
             }
          }
 
         if ( continue ) {
-            if (grid.getBlockValue(nextX, nextY) = 0) {
-               do grid.setBlockValue(x, y, 0);
-               do grid.setBlockValue(nextX, nextY, blockValue);
-               do moveBlock(nextX, nextY, direction, blockValue); //keep going, might be more to move
+            if (grid.getBlockValue(nextCoordinate) = 0) {
+               do grid.setBlockValue(currentCoord, 0);
+               do grid.setBlockValue(nextCoordinate, blockValue);
+               do moveBlock(nextCoordinate, direction, blockValue); //keep going, might be more to move
             }
         }
         return;
@@ -87,10 +84,8 @@ class Game {
     method void smashBlocks(int direction) {
         var int counterOne;
         var int counterTwo;
-        var int x;
-        var int y;
-        var int neighbourX;
-        var int neighbourY;
+        var Coordinate currentCoord;
+        var Coordinate neighbouringCoord;
         var int block;
         var int neighbour;
 
@@ -100,22 +95,20 @@ class Game {
             let counterTwo = 0;
             while ( counterTwo < 3 ) {
                 if ( ( direction = 1 ) | ( direction = 2 )) {
-                    let x = counterTwo;
-                    let neighbourX = x;
                     if ( direction = 1) {
-                        let y = counterOne;
-                        let neighbourY = counterOne - 1;
+                        let coord = Coordinate.new(counterTwo, counterOne);
+                        let neighbouringCoord = coord.decreaseY();
                     } else {
-                        let y = 4 - counterOne;
-                        let neighbourY = 3 - counterOne;
+                        let coord = Coordinate.new(counterTwo, 4 - counterOne);
+                        let neighbouringCoord = coord.increaseY();
                     }
-                    let block = grid.getBlockValue(x, y);
-                    let neighbour = grid.getBlockValue(neighbourX, neighbourY);
+                    let block = grid.getBlockValue(coord);
+                    let neighbour = grid.getBlockValue(neighbouringCoord);
                 }
                 if ( ~( block = 0) ) {
                     if (block = neighbour) {
-                        do grid.setBlockValue(x, y, 0);
-                        do grid.setBlockValue(neighbourX, neighbourY, block * 2);
+                        do grid.setBlockValue(Coordinate.new(x, y), 0);
+                        do grid.setBlockValue(Coordinate.new(neighbourX, neighbourY), block * 2);
                     }
                 }
                 let counterTwo = counterTwo + 1;
@@ -134,20 +127,25 @@ class Game {
     method void moveBlocks(int direction) {
         var int counterOne;
         var int counterTwo;
-        var int y;
-        var int x;
+        var Coordinate coord;
 
         while (counterOne < 4) {
             let counterTwo = 0;
             while (counterTwo < 4) {
                 if ( ( direction = 1) | ( direction = 3 ) ) {
-                    let x = counterTwo;
-                    if ( direction = 1 ) { let y = counterOne; } else { let y = 3 - counterOne; } // go through rows top to bottom or bottom to top
+                    if ( direction = 1 ) {
+                        let coord = Coordinate.new(counterTwo, counterOne);
+                   } else {
+                        let coord = Coordinate.new(counterTwo, 3 - counterOne);
+                    } // go through rows top to bottom or bottom to top
                 } else {
-                    let y = counterTwo;
-                    if ( direction = 3 ) { let x = counterOne; } else { let x = 3 - counterOne; } // go through columns left to right or right to left
+                    if ( direction = 3 ) {
+                        let coord = Coordinate.new(counterOne, counterTwo);
+                    } else {
+                        let coord = Coordinate.new(3 - counterOne, counterTwo);
+                    } // go through columns left to right or right to left
                 }
-                do moveBlockIfSpace(x, y, direction);
+                do moveBlockIfSpace(coord, direction);
                 let counterTwo = counterTwo + 1;
             }
             let counterOne = counterOne + 1;
@@ -155,10 +153,10 @@ class Game {
         return;
     }
 
-    method void moveBlockIfSpace(int x, int y, int direction) {
+    method void moveBlockIfSpace(Coordinate c, int direction) {
         var int blockValue;
-        let blockValue = grid.getBlockValue(x, y);
-        if (~( blockValue = 0 )) { do moveBlock(x, y, direction, blockValue); }
+        let blockValue = grid.getBlockValue(c);
+        if (~( blockValue = 0 )) { do moveBlock(c, direction, blockValue); }
         return;
     }
 }

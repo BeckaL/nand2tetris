@@ -1,0 +1,64 @@
+function Coordinate.new 0
+push constant 2
+call Memory.alloc 1
+pop pointer 0
+push argument 0
+pop this 0
+push argument 1
+pop this 1
+push pointer 0
+return
+function Coordinate.dispose 0
+push argument 0
+pop pointer 0
+push pointer 0
+call memory.deAlloc 1
+pop temp 0
+push constant 0
+return
+function Coordinate.getX 0
+push argument 0
+pop pointer 0
+push this 0
+return
+function Coordinate.getY 0
+push argument 0
+pop pointer 0
+push this 1
+return
+function Coordinate.decreaseX 0
+push argument 0
+pop pointer 0
+push this 0
+push constant 1
+sub
+push this 1
+call Coordinate.new 2
+return
+function Coordinate.increaseX 0
+push argument 0
+pop pointer 0
+push this 0
+push constant 1
+add
+push this 1
+call Coordinate.new 2
+return
+function Coordinate.decreaseY 0
+push argument 0
+pop pointer 0
+push this 0
+push this 1
+push constant 1
+sub
+call Coordinate.new 2
+return
+function Coordinate.increaseY 0
+push argument 0
+pop pointer 0
+push this 0
+push this 1
+push constant 1
+add
+call Coordinate.new 2
+return
