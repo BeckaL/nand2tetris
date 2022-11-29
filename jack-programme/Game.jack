@@ -10,8 +10,8 @@ class Game {
       let score = 0;
       let rows = createInitialRows();
       let rowToInsert = rows[3];
-      do setBlockValue(3, 3, 2);
-      do setBlockValue(2, 3, 2048);
+      do setBlockValue(0, 3, 2);
+      do setBlockValue(2, 2, 2048);
       return this;
     }
 
@@ -48,14 +48,26 @@ class Game {
        }
 
     method void moveBlock(int x, int y, int direction, int blockValue) {
+        var int next;
+        var boolean continue;
         if (direction = 1) {
-            if (y > 0) {
-            if (getBlockValue(x, y - 1) = 0) {
-               do setBlockValue(x, y, 0);
-               do setBlockValue(x, y - 1, blockValue);
-               do moveBlock(x, y - 1, direction, blockValue); //keep going, might be more to move
-            }
+            if ( y > 0 ) {
+                if (getBlockValue(x, y - 1) = 0) {
+                   do setBlockValue(x, y, 0);
+                   do setBlockValue(x, y - 1, blockValue);
+                   do moveBlock(x, y - 1, direction, blockValue); //keep going, might be more to move
+                }
            }
+        } else {
+            if (direction = 2) { // move blocks down
+                if ( y < 3 ) {
+                    if (getBlockValue(x, y + 1) = 0) {
+                       do setBlockValue(x, y, 0);
+                       do setBlockValue(x, y + 1, blockValue);
+                       do moveBlock(x, y + 1, direction, blockValue); //keep going, might be more to move
+                    }
+                }
+            }
         }
         return;
     }
@@ -79,15 +91,30 @@ class Game {
         var int y;
         var int blockValue;
 
-        if (direction = 1) {
+        let yCounter = 0;
+        let xCounter = 0;
+
+        if ( direction = 1 ) {
             while (yCounter < 4) {
                 let xCounter = 0;
                 while (xCounter < 4) {
                     let blockValue = getBlockValue(xCounter, yCounter);
-                    if (~(blockValue = 0)) { do moveBlock(xCounter, yCounter, 1, blockValue); }
+                    if (~(blockValue = 0)) { do moveBlock(xCounter, yCounter, direction, blockValue); }
                     let xCounter = xCounter + 1;
                 }
                 let yCounter = yCounter + 1;
+            }
+        } else {
+            if ( direction = 2 ) { //moving down i.e. increasing y
+                while (yCounter < 4) {
+                    let xCounter = 0;
+                    while (xCounter < 4) {
+                        let blockValue = getBlockValue(xCounter, 3 - yCounter);
+                        if (~(blockValue = 0)) { do moveBlock(xCounter, 3 - yCounter, direction, blockValue); }
+                        let xCounter = xCounter + 1;
+                    }
+                    let yCounter = yCounter + 1;
+                }
             }
         }
         return;
