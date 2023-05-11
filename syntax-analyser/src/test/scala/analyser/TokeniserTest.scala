@@ -6,9 +6,10 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 
 class TokeniserTest extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks {
-    private val input = "while (count < 100) { let count = count; } }  "
 
     "hasMoreTokens" should "return true or false depending on whether there are tokens remaining" in {
+        val input = "while (count < 100) { let count = count; } }  "
+
         val positionsAndExpectedResults = Table(
             ("position", "expectedResult"),
             (0, true),
@@ -23,6 +24,8 @@ class TokeniserTest extends AnyFlatSpec with Matchers with TableDrivenPropertyCh
             tokeniser.hasMoreTokens shouldBe expectedResult
         }
     }
+
+
     
     //TODO: ensure comments are ignored
 }
