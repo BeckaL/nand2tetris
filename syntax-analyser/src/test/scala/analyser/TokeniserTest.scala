@@ -25,7 +25,34 @@ class TokeniserTest extends AnyFlatSpec with Matchers with TableDrivenPropertyCh
         }
     }
 
+    "advance" should "correctly set the next position and token" in {
+        pending
+        val input = " while(count < 100) { let count = count; } }  "
 
-    
-    //TODO: ensure comments are ignored
+        val expectedTokensAndPositions = List(
+            ("while", 6),
+            ("(", 7),
+            ("count", 13),
+            ("<", 15),
+            ("100", 18),
+            (")", 20),
+            ("{", 22),
+            ("let", 26),
+            ("count", 32),
+            ("=", 34),
+            ("count", 39),
+            (";", 41),
+            ("}", 43),
+            ("}", 44)
+        )
+
+        val tokeniser = new Tokeniser(input, 0)
+
+        (0 until expectedTokensAndPositions.size).foreach { i =>
+          tokeniser.advance
+          val (expectedToken, expectedPosition) = expectedTokensAndPositions(i)
+          tokeniser.position shouldBe expectedPosition
+          tokeniser.currentToken shouldBe expectedToken
+        }
+    }
 }
