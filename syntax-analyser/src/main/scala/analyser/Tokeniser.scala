@@ -17,6 +17,12 @@ class Tokeniser(input: String, var position: Int = 0, var currentToken: String =
     currentToken = input.slice(nextPosition, position)
   }
 
+  def keyword: String = currentToken
+  def symbol: Char = currentToken.charAt(0)
+  def identifier: String = currentToken
+  def intVal: Int = currentToken.toInt
+  def stringVal: String = currentToken.tail.dropRight(1)
+
   private def terminatingRegexAndOffset(firstChar: Char): (Regex, Int) =
     if (TokenTypes.symbols.contains(firstChar.toString))
       (".".r, 0)

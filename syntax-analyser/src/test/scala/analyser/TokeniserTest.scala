@@ -59,4 +59,23 @@ class TokeniserTest extends AnyFlatSpec with Matchers with TableDrivenPropertyCh
           tokeniser.currentToken shouldBe expectedToken
         }
     }
+
+    "value return methods" should "work appropriately" in {
+        val tokeniser = new Tokeniser("", 0)
+
+        tokeniser.currentToken = "class"
+        tokeniser.keyword shouldBe "class"
+
+        tokeniser.currentToken = "100"
+        tokeniser.intVal shouldBe 100
+
+        tokeniser.currentToken = "a_var"
+        tokeniser.identifier shouldBe "a_var"
+
+        tokeniser.currentToken = "{"
+        tokeniser.symbol shouldBe '{'
+
+        tokeniser.currentToken = "\"a_string\""
+        tokeniser.stringVal shouldBe "a_string"
+    }
 }
