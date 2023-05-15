@@ -1,8 +1,5 @@
 package analyser
 
-import sun.security.pkcs11
-import sun.security.pkcs11.P11Util
-
 object InputUtils {
   def stripInput(input: List[String]): List[String] =
     removeComments(input.mkString("\n") ++ "\n").split("\n").toList.filter(line => line.trim != "")
