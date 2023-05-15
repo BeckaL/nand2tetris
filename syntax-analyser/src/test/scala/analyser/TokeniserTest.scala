@@ -5,7 +5,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 
-class TokeniserTest extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks {
+class DefaultTokeniserTest extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks {
 
     "hasMoreTokens" should "return true or false depending on whether there are tokens remaining" in {
         val input = "while (count < 100) { let count = count; } }  "
@@ -20,7 +20,7 @@ class TokeniserTest extends AnyFlatSpec with Matchers with TableDrivenPropertyCh
         )
 
         forAll(positionsAndExpectedResults) { case (position, expectedResult) =>
-            val tokeniser = new Tokeniser(input, position)
+            val tokeniser = new DefaultTokeniser(input, position)
             tokeniser.hasMoreTokens shouldBe expectedResult
         }
     }
@@ -50,7 +50,7 @@ class TokeniserTest extends AnyFlatSpec with Matchers with TableDrivenPropertyCh
             ("}", 58)
         )
 
-        val tokeniser = new Tokeniser(input, 0)
+        val tokeniser = new DefaultTokeniser(input, 0)
 
         expectedTokensAndPositions.indices.foreach { i =>
           tokeniser.advance()
@@ -61,7 +61,7 @@ class TokeniserTest extends AnyFlatSpec with Matchers with TableDrivenPropertyCh
     }
 
     "value return methods" should "work appropriately" in {
-        val tokeniser = new Tokeniser("", 0)
+        val tokeniser = new DefaultTokeniser("", 0)
 
         tokeniser.currentToken = "class"
         tokeniser.keyword shouldBe "class"

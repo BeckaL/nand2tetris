@@ -3,8 +3,13 @@ package analyser
 import scala.util.matching.Regex
 import analyser.TokenTypes.*
 
+trait Tokeniser {
+  def advance(): Unit
+  def currentToken: String
+}
+
 //At this point, input should be a string with only spaces as whitespace, newlines etc replaced by spaces
-class Tokeniser(input: String, var position: Int = 0, var currentToken: String = "") {
+class DefaultTokeniser(input: String, var position: Int = 0, var currentToken: String = "") extends Tokeniser {
 
   def hasMoreTokens: Boolean =
     position < input.size && input.slice(position, input.size).exists(!_.isSpaceChar)
