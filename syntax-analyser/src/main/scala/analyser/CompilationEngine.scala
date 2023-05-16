@@ -1,61 +1,53 @@
 package analyser
 
+import util.chaining.scalaUtilChainingOps
+
 object CompilationEngine {
   def compileLet(tokeniser: Tokeniser): Either[String, LetStatement] =
     for {
-      variable <- getNextToken[VarName](tokeniser, VarName.from)
-      _ <- assertNextTokenEquals(tokeniser, "=")
-      expression <- getNextToken[VarName](tokeniser, VarName.from)
-      _ <- assertNextTokenEquals(tokeniser, ";")
+      _ <- assertTokenEqualsAndAdvance(tokeniser, "let")
+      variable <- getTokenAsAndAdvance[VarName](tokeniser, VarName.from)
+      _ <- assertTokenEqualsAndAdvance(tokeniser, "=")
+      expression <- getTokenAsAndAdvance[VarName](tokeniser, VarName.from)
+      _ <- assertTokenEqualsAndAdvance(tokeniser, ";")
     } yield LetStatement(variable, expression)
 
-  def compileDo(tokeniser: Tokeniser): Either[String, DoStatement] =
+  def compileDo(t: Tokeniser): Either[String, DoStatement] =
     for {
-      variable <- getNextToken[VarName](tokeniser, VarName.from)
-      _ <- assertNextTokenEquals(tokeniser, ".")
-      method <- getNextToken[VarName](tokeniser, VarName.from)
-      _ <- assertNextTokenEquals(tokeniser, "(")
-      list <- getOptionalListOfVarsFollowedByClosingChar(tokeniser)
-      _ <- assertNextTokenEquals(tokeniser, ";")
+      _ <- assertTokenEqualsAndAdvance(t, "do")
+      variable <- getTokenAsAndAdvance[VarName](t, VarName.from)
+      _ <- assertTokenEqualsAndAdvance(t, ".")
+      method <- getTokenAsAndAdvance[VarName](t, VarName.from)
+      _ <- assertTokenEqualsAndAdvance(t, "(")
+      list <- getOptionalListOfVarsFollowedByClosingChar(t)
+      _ <- assertTokenEqualsAndAdvance(t, ";")
     } yield DoStatement(variable, method, list)
 
-  //TODO tidy this up
-  private def getOptionalListOfVarsFollowedByClosingChar(tokeniser: Tokeniser, varListSoFar: List[VarName] = List()): Either[String, List[VarName]] =
-    tokeniser.advance()
-    tokeniser.currentToken match {
-      case ")" => Right(varListSoFar)
-      case _ => getVarList(tokeniser, List())
-    }
+  private def getOptionalListOfVarsFollowedByClosingChar(t: Tokeniser, varListSoFar: List[VarName] = List()): Either[String, List[VarName]] =
+    t.currentToken match
+      case ")" => Right(varListSoFar).tap(_ => t.advance())
+      case _ => getVarList(t, List())
 
-  private def getVarList(tokeniser: Tokeniser, soFar: List[VarName] = List()): Either[String, List[VarName]] = {
-    (for {
-      varName <- VarName.from(tokeniser.currentToken)
-      nextToken <- assertNextTokenEqualsOneOf(tokeniser, Set(")", ","))
+  private def getVarList(t: Tokeniser, soFar: List[VarName] = List()): Either[String, List[VarName]] =
+    for {
+      varName <- getTokenAsAndAdvance[VarName](t, VarName.from)
+      nextToken <- assertNextTokenEqualsOneOf(t, Set(")", ","))
       continue = nextToken == ","
       newVarList = soFar :+ varName
-    } yield (newVarList, continue)) match {
-      case Right((newVarList, true)) =>
-        tokeniser.advance()
-        getVarList(tokeniser, newVarList)
-      case Right((newVarList, false)) => Right(newVarList)
-      case Left(e) => Left(e)
-    }
-  }
+      r <- if (continue)
+          getVarList(t, newVarList)
+        else
+          Right(newVarList)
+    } yield r
 
-  private def assertNextTokenEqualsOneOf(tokeniser: Tokeniser, equals: Set[String]): Either[String, String] =
-    tokeniser.advance()
-    tokeniser.currentToken match
-      case string if equals.contains(string) => Right(string)
-      case otherString => Left(s"uh-oh, expected $otherString to equal $equals")
+  private def assertNextTokenEqualsOneOf(t: Tokeniser, equals: Set[String]): Either[String, String] =
+    t.currentToken match
+      case s if equals.contains(s) => Right(s).tap(_ => t.advance())
+      case otherString => Left(s"uh-oh, expected $otherString to equal ${equals.toList.mkString(" or ")}")
 
-  //TODO constrain T to be a token
-  private def getNextToken[T](tokeniser: Tokeniser, transformer: String => Either[String, T]): Either[String, T] =
-    tokeniser.advance()
-    transformer(tokeniser.currentToken)
+  private def getTokenAsAndAdvance[T <: Token](t: Tokeniser, transformer: String => Either[String, T]): Either[String, T] =
+    transformer(t.currentToken).tap(_ => t.advance())
 
-  private def assertNextTokenEquals(tokeniser: Tokeniser, equals: String): Either[String, Unit] =
-    tokeniser.advance()
-    tokeniser.currentToken match
-      case string if string == equals => Right(())
-      case otherString => Left(s"uh-oh, expected $otherString to equal $equals")
+  private def assertTokenEqualsAndAdvance(t: Tokeniser, equals: String): Either[String, Unit] =
+    assertNextTokenEqualsOneOf(t, Set(equals)).map(_ => ())
 }
