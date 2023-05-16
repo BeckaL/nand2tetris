@@ -5,6 +5,7 @@ import analyser.TokenTypes
 trait Token
 
 case class LetStatement(varname: VarName, expression: VarName) extends Token //TODO enable to handle expressions and arrays
+case class DoStatement(identifier: VarName, subroutineName: VarName, arguments: List[VarName]) extends Token
 case class VarName(value: String) extends Token
 
 object VarName {
