@@ -6,6 +6,7 @@ import analyser.TokenTypes.*
 trait Tokeniser {
   def advance(): Unit
   def currentToken: String
+  def hasMoreTokens: Boolean
 }
 
 //At this point, input should be a string with only spaces as whitespace, newlines etc replaced by spaces
