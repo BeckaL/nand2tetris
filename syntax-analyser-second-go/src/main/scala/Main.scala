@@ -1,4 +1,4 @@
-import analyser.CompilationEngine.{compileDo, compileLet, compileLetGetLexicalElements}
+import analyser.CompilationEngine.{compileDo, compileDoGetLexicalElements, compileLet, compileLetGetLexicalElements}
 import analyser.{DefaultTokeniser, InputUtils, LexicalElement, Token, Tokeniser}
 import inputoutput.FileOps.*
 
@@ -20,7 +20,8 @@ object Main {
   private def compile(tokeniser: Tokeniser, statements: List[LexicalElement]): List[LexicalElement] = {
     println(s"current token is ${tokeniser.currentToken}")
     val newStatements = tokeniser.currentToken match {
-      case "let" => compileLetGetLexicalElements(tokeniser).map(s => statements ++ s) 
+      case "let" => compileLetGetLexicalElements(tokeniser).map(s => statements ++ s)
+      case "do" => compileDoGetLexicalElements(tokeniser).map(s => statements ++ s)
       case otherToken => throw new RuntimeException(s"uh oh $otherToken")
     }
     newStatements match {

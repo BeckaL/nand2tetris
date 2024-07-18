@@ -30,6 +30,28 @@ object CompilationEngine {
       _ <- assertTokenEqualsAndAdvance(tokeniser, ";")
     } yield LetStatement(variable, expression)
 
+   def compileDoGetLexicalElements(t: Tokeniser): Either[String, List[LexicalElement]] = {
+     val lexicalElements = ArrayBuffer[LexicalElement]()
+
+     for {
+       _ <- assertTokenEqualsAndAdvance(t, "do")
+       _ = lexicalElements.addOne(Keyword("do"))
+       variable <- getTokenAsAndAdvance[Term](t, Term.from)
+       _ = lexicalElements.addOne(variable.toLexElem)
+       _ <- assertTokenEqualsAndAdvance(t, ".")
+       _ = lexicalElements.addOne(LexicalSymbol('.'))
+       method <- getTokenAsAndAdvance[Term](t, Term.from)
+       _ = lexicalElements.addOne(method.toLexElem)
+       _ <- assertTokenEqualsAndAdvance(t, "(")
+       _ = lexicalElements.addOne(LexicalSymbol('('))
+       list <- getOptionalListOfVarsFollowedByClosingChar(t)
+       _ = lexicalElements.addOne(list.head.toLexElem)
+       _ = lexicalElements.addOne(LexicalSymbol(')'))
+       _ <- assertTokenEqualsAndAdvance(t, ";")
+       _ = lexicalElements.addOne(LexicalSymbol(';'))
+     } yield lexicalElements.toList
+   }
+
   def compileDo(t: Tokeniser): Either[String, DoStatement] =
     for {
       _ <- assertTokenEqualsAndAdvance(t, "do")
