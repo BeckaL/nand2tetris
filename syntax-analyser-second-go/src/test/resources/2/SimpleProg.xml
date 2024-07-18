@@ -1,3 +1,15 @@
-if (x < 0) {
-    let quit = "yes";
-}
+<tokens>
+<keyword> if </keyword>
+<symbol> ( </symbol>
+<identifier> x </identifier>
+<symbol> &lt; </symbol>
+<integerConstant> 0 </integerConstant>
+<symbol> ) </symbol>
+<symbol> { </symbol>
+<keyword> let </keyword>
+<identifier> quit </identifier>
+<symbol> = </symbol>
+<stringConstant> yes </stringConstant>
+<symbol> ; </symbol>
+<symbol> } </symbol>
+</tokens>

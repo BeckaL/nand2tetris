@@ -1,11 +1,9 @@
 package analyser
 
-import analyser.TokenTypes
-
 trait LexicalElement { def toTokenString: String }
 
 case class LexicalSymbol(s: Char) extends LexicalElement {
-  override def toTokenString = s"<symbol> $s </symbol>"
+  override def toTokenString = s"<symbol> ${scala.xml.Utility.escape(s.toString)} </symbol>"
 }
 case class Keyword(string: String) extends  LexicalElement {
   override def toTokenString = s"<keyword> $string </keyword>"
@@ -37,7 +35,9 @@ case class StringConstant(s: String) extends Term {
 }
 
 case class Expression(term: Term, opTerm: Option[(Operator, Term)]) extends Token
-case class Operator(s: String) extends Token
+case class Operator(s: String) extends Token {
+  def toLexElem: LexicalSymbol = LexicalSymbol(s.head)
+}
 
 object Term {
   def from(s: String): Either[String, Term] =

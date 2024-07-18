@@ -25,7 +25,7 @@ object TokenTypes extends Enumeration {
 
   val symbols = "{}()[].,;+-*/&|<>=~".split("").toList
   
-  val integerRegex = "^[1-9]\\d{0,4}$".r
+  val integerRegex = "^[1-9]\\d{0,4}|0$".r
 
   val stringConstRegex = "^\"[^\"\\n]*\"$".r
 
