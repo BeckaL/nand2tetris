@@ -1,0 +1,7 @@
+<tokens>
+<keyword> let </keyword>
+<identifier> average </identifier>
+<symbol> = </symbol>
+<integerConstant> 4 </integerConstant>
+<symbol> ; </symbol>
+</tokens>
