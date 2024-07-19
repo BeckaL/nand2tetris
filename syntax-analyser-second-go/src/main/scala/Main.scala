@@ -1,4 +1,4 @@
-import analyser.CompilationEngine.{compileDo, compileLet, compileIf}
+import analyser.CompilationEngine.{compileDo, compileIf, compileLet, compileStatement}
 import analyser.{DefaultTokeniser, InputUtils, LexicalElement, Tokeniser}
 import inputoutput.FileOps.*
 
@@ -18,12 +18,7 @@ object Main {
 
   @tailrec
   private def compile(tokeniser: Tokeniser, statements: List[LexicalElement]): List[LexicalElement] = {
-    val newStatements = tokeniser.currentToken match {
-      case "let" => compileLet(tokeniser).map(s => statements ++ s)
-      case "do" => compileDo(tokeniser).map(s => statements ++ s)
-      case "if" => compileIf(tokeniser).map(s => statements ++ s)
-      case otherToken => throw new RuntimeException(s"uh oh $otherToken")
-    }
+    val newStatements = compileStatement(tokeniser).map(s => statements ++ s)
     newStatements match {
       case Right(newStatements) => if (tokeniser.hasMoreTokens)
         compile(tokeniser, newStatements)

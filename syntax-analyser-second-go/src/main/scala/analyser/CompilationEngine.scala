@@ -59,6 +59,16 @@ object CompilationEngine {
      } yield List(Keyword("return"), LexicalSymbol(';'))
    }
    
+   //TODO make compileStatements
+   def compileStatement(t: Tokeniser): Either[String, List[LexicalElement]] = {
+     t.currentToken match {
+       case "let" => compileLet(t)
+       case "do" => compileDo(t)
+       case "if" => compileIf(t)
+       case otherToken => throw new RuntimeException(s"uh oh $otherToken")
+     }
+   }
+   
    def compileIf(t: Tokeniser): Either[String, List[LexicalElement]] = {
      val lexicalElements = ArrayBuffer[LexicalElement]()
 
