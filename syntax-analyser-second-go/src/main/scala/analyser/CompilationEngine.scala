@@ -6,19 +6,15 @@ import util.chaining.scalaUtilChainingOps
 object CompilationEngine {
   
   def compileLet(tokeniser: Tokeniser): Either[String, List[LexicalElement]] = {
-    val lexicalElements = ArrayBuffer[LexicalElement]()
     for {
       _ <- assertTokenEqualsAndAdvance(tokeniser, "let")
-      _ = lexicalElements.addOne(Keyword("let"))
       variable <- getTokenAsAndAdvance[Term](tokeniser, Term.from)
-      _ = lexicalElements.addOne(variable.toLexElem)
       _ <- assertTokenEqualsAndAdvance(tokeniser, "=")
-      _ = lexicalElements.addOne(LexicalSymbol('='))
       expression <- getTokenAsAndAdvance[Term](tokeniser, Term.from)
-      _ = lexicalElements.addOne(expression.toLexElem)
       _ <- assertTokenEqualsAndAdvance(tokeniser, ";")
-      _ = lexicalElements.addOne(LexicalSymbol(';'))
-    } yield lexicalElements.toList
+    } yield List(
+      Keyword("let"), variable.toLexElem, LexicalSymbol('='), expression.toLexElem, LexicalSymbol(';')
+    )
   }
   
    def compileDo(t: Tokeniser): Either[String, List[LexicalElement]] = {
