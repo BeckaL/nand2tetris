@@ -7,32 +7,32 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks {
 
   "compileLet" should "compile a valid let statement" in {
-    val tokeniser = testTokeniser(List("let", "count", "=", "count", ";"))
+    val tokeniser = testTokeniser("let count = count ;")
     CompilationEngine.compileLet(tokeniser) shouldBe Right(List(Keyword("let"), LexicalIdentifier("count"), LexicalSymbol('='), LexicalIdentifier("count"), LexicalSymbol(';')))
   }
 
   it should "compile a valid let statement with an integer constant" in {
-    val tokeniser = testTokeniser(List("let", "count", "=", "100", ";"))
+    val tokeniser = testTokeniser("let count = 100 ;")
     CompilationEngine.compileLet(tokeniser) shouldBe Right(List(Keyword("let"), LexicalIdentifier("count"), LexicalSymbol('='), LexicalIntegerConstant(100), LexicalSymbol(';')))
   }
 
   it should "throw an error on an invalid let statement" in {
-    val tokeniser = testTokeniser(List("let", "count", "*", "count"))
+    val tokeniser = testTokeniser("let count * count")
     CompilationEngine.compileLet(tokeniser) shouldBe Left("uh-oh, expected * to equal =")
   }
 
   it should "compile a do statement with a single expression and no params" in {
-    val tokeniser = testTokeniser(List("do", "square", ".", "dispose", "(", ")", ";"))
+    val tokeniser = testTokeniser("do square . dispose ( ) ;")
     CompilationEngine.compileDo(tokeniser) shouldBe Right(List(Keyword("do"), LexicalIdentifier("square"), LexicalSymbol('.'), LexicalIdentifier("dispose"), LexicalSymbol('('), LexicalSymbol(')'), LexicalSymbol(';')))
   }
 
   it should "compile a do statement with a single param" in {
-    val tokeniser = testTokeniser(List("do", "Memory", ".", "deAlloc", "(", "square", ")", ";"))
+    val tokeniser = testTokeniser("do Memory . deAlloc ( square ) ;")
     CompilationEngine.compileDo(tokeniser) shouldBe Right(List(Keyword("do"), LexicalIdentifier("Memory"), LexicalSymbol('.'), LexicalIdentifier("deAlloc"), LexicalSymbol('('), LexicalIdentifier("square"), LexicalSymbol(')'), LexicalSymbol(';')))
   }
 
   it should "compile a do statement with multiple params" in {
-    val tokeniser = testTokeniser(List("do", "Foo", ".", "bar", "(", "100", ",", "\"b\"", ",", "c", ")", ";"))
+    val tokeniser = testTokeniser("do Foo . bar ( 100 , \"b\" , c ) ;")
     CompilationEngine.compileDo(tokeniser) shouldBe Right(
       List(Keyword("do"), LexicalIdentifier("Foo"), LexicalSymbol('.'), LexicalIdentifier("bar"), LexicalSymbol('('), LexicalIntegerConstant(100), LexicalSymbol(','), LexicalStringConstant("b"), LexicalSymbol(','), LexicalIdentifier("c"), LexicalSymbol(')'), LexicalSymbol(';')))
   }
