@@ -5,7 +5,7 @@ import util.chaining.scalaUtilChainingOps
 
 object CompilationEngine {
   
-  def compileLetGetLexicalElements(tokeniser: Tokeniser): Either[String, List[LexicalElement]] = {
+  def compileLet(tokeniser: Tokeniser): Either[String, List[LexicalElement]] = {
     val lexicalElements = ArrayBuffer[LexicalElement]()
     for {
       _ <- assertTokenEqualsAndAdvance(tokeniser, "let")
@@ -21,16 +21,7 @@ object CompilationEngine {
     } yield lexicalElements.toList
   }
   
-  def compileLet(tokeniser: Tokeniser): Either[String, LetStatement] =
-    for {
-      _ <- assertTokenEqualsAndAdvance(tokeniser, "let")
-      variable <- getTokenAsAndAdvance[Term](tokeniser, Term.from)
-      _ <- assertTokenEqualsAndAdvance(tokeniser, "=")
-      expression <- getTokenAsAndAdvance[Term](tokeniser, Term.from)
-      _ <- assertTokenEqualsAndAdvance(tokeniser, ";")
-    } yield LetStatement(variable, expression)
-
-   def compileDoGetLexicalElements(t: Tokeniser): Either[String, List[LexicalElement]] = {
+   def compileDo(t: Tokeniser): Either[String, List[LexicalElement]] = {
      val lexicalElements = ArrayBuffer[LexicalElement]()
 
      for {
@@ -45,14 +36,14 @@ object CompilationEngine {
        _ <- assertTokenEqualsAndAdvance(t, "(")
        _ = lexicalElements.addOne(LexicalSymbol('('))
        list <- getOptionalListOfVarsFollowedByClosingChar(t)
-       _ = lexicalElements.addOne(list.head.toLexElem)
+       _ = lexicalElements.addAll(list)
        _ = lexicalElements.addOne(LexicalSymbol(')'))
        _ <- assertTokenEqualsAndAdvance(t, ";")
        _ = lexicalElements.addOne(LexicalSymbol(';'))
      } yield lexicalElements.toList
    }
    
-   def compileIfGetLexicalElements(t: Tokeniser): Either[String, List[LexicalElement]] = {
+   def compileIf(t: Tokeniser): Either[String, List[LexicalElement]] = {
      val lexicalElements = ArrayBuffer[LexicalElement]()
 
      for {
@@ -70,24 +61,13 @@ object CompilationEngine {
        _ = lexicalElements.addOne(LexicalSymbol(')'))
        _ <- assertTokenEqualsAndAdvance(t, "{")
        _ = lexicalElements.addOne(LexicalSymbol('{'))
-       letElems <- compileLetGetLexicalElements(t)
+       letElems <- compileLet(t)
        _ = lexicalElements.addAll(letElems)
        _ <- assertTokenEqualsAndAdvance(t, "}")
        _ = lexicalElements.addOne(LexicalSymbol('}'))
      } yield lexicalElements.toList
      
    }
-
-  def compileDo(t: Tokeniser): Either[String, DoStatement] =
-    for {
-      _ <- assertTokenEqualsAndAdvance(t, "do")
-      variable <- getTokenAsAndAdvance[Term](t, Term.from)
-      _ <- assertTokenEqualsAndAdvance(t, ".")
-      method <- getTokenAsAndAdvance[Term](t, Term.from)
-      _ <- assertTokenEqualsAndAdvance(t, "(")
-      list <- getOptionalListOfVarsFollowedByClosingChar(t)
-      _ <- assertTokenEqualsAndAdvance(t, ";")
-    } yield DoStatement(variable, method, list)
 
   def compileExpression(t: Tokeniser): Either[String, Expression] =
     for {
@@ -101,19 +81,19 @@ object CompilationEngine {
                     Right(None)
       } yield Expression(term, opTerm)
 
-  private def getOptionalListOfVarsFollowedByClosingChar(t: Tokeniser, varListSoFar: List[Term] = List()): Either[String, List[Term]] =
+  private def getOptionalListOfVarsFollowedByClosingChar(t: Tokeniser, varListSoFar: List[LexicalElement] = List()): Either[String, List[LexicalElement]] =
     t.currentToken match
       case ")" => Right(varListSoFar).tap(_ => t.advance())
       case _ => getVarList(t, List())
 
-  private def getVarList(t: Tokeniser, soFar: List[Term] = List()): Either[String, List[Term]] =
+  private def getVarList(t: Tokeniser, soFar: List[LexicalElement] = List()): Either[String, List[LexicalElement]] =
     for {
-      varName <- getTokenAsAndAdvance[Term](t, Term.from)
+      lexElem <- getTokenAsAndAdvance[Term](t, Term.from).map(_.toLexElem)
       nextToken <- assertNextTokenEqualsOneOf(t, Set(")", ","))
       continue = nextToken == ","
-      newVarList = soFar :+ varName
+      newVarList = soFar :+ lexElem
       r <- if (continue)
-          getVarList(t, newVarList)
+          getVarList(t, newVarList :+ LexicalSymbol(','))
         else
           Right(newVarList)
     } yield r

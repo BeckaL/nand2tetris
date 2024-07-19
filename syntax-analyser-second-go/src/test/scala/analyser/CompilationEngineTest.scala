@@ -8,12 +8,12 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   "compileLet" should "compile a valid let statement" in {
     val tokeniser = testTokeniser(List("let", "count", "=", "count", ";"))
-    CompilationEngine.compileLet(tokeniser) shouldBe Right(LetStatement(VarName("count"), VarName("count")))
+    CompilationEngine.compileLet(tokeniser) shouldBe Right(List(Keyword("let"), LexicalIdentifier("count"), LexicalSymbol('='), LexicalIdentifier("count"), LexicalSymbol(';')))
   }
 
   it should "compile a valid let statement with an integer constant" in {
     val tokeniser = testTokeniser(List("let", "count", "=", "100", ";"))
-    CompilationEngine.compileLet(tokeniser) shouldBe Right(LetStatement(VarName("count"), IntegerConstant(100)))
+    CompilationEngine.compileLet(tokeniser) shouldBe Right(List(Keyword("let"), LexicalIdentifier("count"), LexicalSymbol('='), LexicalIntegerConstant(100), LexicalSymbol(';')))
   }
 
   it should "throw an error on an invalid let statement" in {
@@ -23,17 +23,18 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   it should "compile a do statement with a single expression and no params" in {
     val tokeniser = testTokeniser(List("do", "square", ".", "dispose", "(", ")", ";"))
-    CompilationEngine.compileDo(tokeniser) shouldBe Right(DoStatement(VarName("square"), VarName("dispose"), List()))
+    CompilationEngine.compileDo(tokeniser) shouldBe Right(List(Keyword("do"), LexicalIdentifier("square"), LexicalSymbol('.'), LexicalIdentifier("dispose"), LexicalSymbol('('), LexicalSymbol(')'), LexicalSymbol(';')))
   }
 
   it should "compile a do statement with a single param" in {
     val tokeniser = testTokeniser(List("do", "Memory", ".", "deAlloc", "(", "square", ")", ";"))
-    CompilationEngine.compileDo(tokeniser) shouldBe Right(DoStatement(VarName("Memory"), VarName("deAlloc"), List(VarName("square"))))
+    CompilationEngine.compileDo(tokeniser) shouldBe Right(List(Keyword("do"), LexicalIdentifier("Memory"), LexicalSymbol('.'), LexicalIdentifier("deAlloc"), LexicalSymbol('('), LexicalIdentifier("square"), LexicalSymbol(')'), LexicalSymbol(';')))
   }
 
   it should "compile a do statement with multiple params" in {
     val tokeniser = testTokeniser(List("do", "Foo", ".", "bar", "(", "100", ",", "\"b\"", ",", "c", ")", ";"))
-    CompilationEngine.compileDo(tokeniser) shouldBe Right(DoStatement(VarName("Foo"), VarName("bar"), List(IntegerConstant(100), StringConstant("b"), VarName("c"))))
+    CompilationEngine.compileDo(tokeniser) shouldBe Right(
+      List(Keyword("do"), LexicalIdentifier("Foo"), LexicalSymbol('.'), LexicalIdentifier("bar"), LexicalSymbol('('), LexicalIntegerConstant(100), LexicalSymbol(','), LexicalStringConstant("b"), LexicalSymbol(','), LexicalIdentifier("c"), LexicalSymbol(')'), LexicalSymbol(';')))
   }
 
   "compile expression" should "compile a valid expression" in {

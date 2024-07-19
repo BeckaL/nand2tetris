@@ -1,5 +1,5 @@
-import analyser.CompilationEngine.{compileDo, compileDoGetLexicalElements, compileIfGetLexicalElements, compileLet, compileLetGetLexicalElements}
-import analyser.{DefaultTokeniser, InputUtils, LexicalElement, Token, Tokeniser}
+import analyser.CompilationEngine.{compileDo, compileLet, compileIf}
+import analyser.{DefaultTokeniser, InputUtils, LexicalElement, Tokeniser}
 import inputoutput.FileOps.*
 
 import scala.annotation.tailrec
@@ -19,9 +19,9 @@ object Main {
   @tailrec
   private def compile(tokeniser: Tokeniser, statements: List[LexicalElement]): List[LexicalElement] = {
     val newStatements = tokeniser.currentToken match {
-      case "let" => compileLetGetLexicalElements(tokeniser).map(s => statements ++ s)
-      case "do" => compileDoGetLexicalElements(tokeniser).map(s => statements ++ s)
-      case "if" => compileIfGetLexicalElements(tokeniser).map(s => statements ++ s)
+      case "let" => compileLet(tokeniser).map(s => statements ++ s)
+      case "do" => compileDo(tokeniser).map(s => statements ++ s)
+      case "if" => compileIf(tokeniser).map(s => statements ++ s)
       case otherToken => throw new RuntimeException(s"uh oh $otherToken")
     }
     newStatements match {
