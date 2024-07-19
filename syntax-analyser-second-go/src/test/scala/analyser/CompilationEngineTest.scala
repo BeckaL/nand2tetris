@@ -63,6 +63,32 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     )
   }
 
+  "compileParameterList" should "compile an empty parameter list" in {
+    val tokeniser = testTokeniser("( )")
+    CompilationEngine.compileParameterList(tokeniser) shouldBe Right(
+      List(LexicalSymbol('('), LexicalSymbol(')'))
+    )
+  }
+
+  it should "compile a single parameter" in {
+    val tokeniser = testTokeniser("( int myVar )")
+    CompilationEngine.compileParameterList(tokeniser) shouldBe Right(
+      List(LexicalSymbol('('), Keyword("int"), LexicalIdentifier("myVar"), LexicalSymbol(')'))
+    )
+  }
+
+  it should "compile multiple parameters" in {
+    val tokeniser = testTokeniser("( int myVar , MyClass instanceOfMyClass )")
+    CompilationEngine.compileParameterList(tokeniser) shouldBe Right(
+      List(LexicalSymbol('('), Keyword("int"), LexicalIdentifier("myVar"), LexicalSymbol(','), LexicalIdentifier("MyClass"), LexicalIdentifier("instanceOfMyClass"), LexicalSymbol(')'))
+    )
+  }
+
+  it should "fail on a malformed param list" in {
+    val tokeniser = testTokeniser("( int , myVar )")
+    CompilationEngine.compileParameterList(tokeniser) shouldBe Left("Uh-oh, tried to parse identifier from ,")
+  }
+
   "compile expression" should "compile a valid expression" in {
     def variable(s: String) = VarName(s)
     def exp(t: Term, o: Option[(Operator, Term)]) = Expression(t, o)

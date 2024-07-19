@@ -69,6 +69,19 @@ object CompilationEngine {
      }
    }
    
+   def compileParameterList(t: Tokeniser): Either[String, List[LexicalElement]] = {
+     for {
+       _ <- assertTokenEqualsAndAdvance(t, "(")
+       paramList <- getOptionalVarParamList(t)
+     } yield LexicalSymbol('(') +: paramList :+ LexicalSymbol(')')
+   }
+   
+   private def getOptionalVarParamList(t: Tokeniser, soFar: List[LexicalElement] = List()): Either[String, List[LexicalElement]] = {
+     t.currentToken match
+       case ")" => Right(soFar).tap(_ => t.advance())
+       case _ => getVarParamList(t, List())
+   } 
+   
    def compileIf(t: Tokeniser): Either[String, List[LexicalElement]] = {
      val lexicalElements = ArrayBuffer[LexicalElement]()
 
@@ -111,6 +124,20 @@ object CompilationEngine {
     t.currentToken match
       case ")" => Right(varListSoFar).tap(_ => t.advance())
       case _ => getVarList(t, List())
+
+
+  private def getVarParamList(t: Tokeniser, soFar: List[LexicalElement] = List()): Either[String, List[LexicalElement]] =
+    for {
+      varType <- getLexElementAsAndAdvance[LexicalElement](t, LexicalElement.keywordOrIndentifierFrom)
+      identifier <- getLexElementAsAndAdvance[LexicalIdentifier](t, LexicalElement.identifierFrom)
+      nextToken <- assertNextTokenEqualsOneOf(t, Set(")", ","))
+      continue = nextToken == ","
+      newVarList = soFar ++ List(varType, identifier)
+      r <- if (continue)
+        getVarParamList(t, newVarList :+ LexicalSymbol(','))
+      else
+        Right(newVarList)
+    } yield r
 
 
   private def getVarDecList(t: Tokeniser, soFar: List[LexicalElement] = List()): Either[String, List[LexicalElement]] =
