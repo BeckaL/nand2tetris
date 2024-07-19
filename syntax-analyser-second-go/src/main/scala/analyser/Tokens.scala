@@ -18,6 +18,23 @@ case class LexicalIdentifier(id: String) extends LexicalElement {
   override def toTokenString: String = s"<identifier> $id </identifier>"
 }
 
+object LexicalElement {
+  def keywordOrIndentifierFrom(s: String): Either[String, LexicalElement] = {
+    TokenTypes.tokenType(s) match {
+      case TokenTypes.Keyword => Right(Keyword(s))
+      case TokenTypes.Identifier => Right(LexicalIdentifier(s))
+      case _ => Left(s"Uh-oh, tried to parse keyword or identifier from $s")
+    } 
+  }
+  
+  def identifierFrom(s: String): Either[String, LexicalIdentifier] = {
+    TokenTypes.tokenType(s) match {
+      case TokenTypes.Identifier => Right(LexicalIdentifier(s))
+      case _ => Left(s"Uh-oh, tried to parse identifier from $s")
+    }
+  }
+}
+
 trait Token
 
 case class LetStatement(varname: Term, expression: Term) extends Token //TODO enable to handle expressions and arrays

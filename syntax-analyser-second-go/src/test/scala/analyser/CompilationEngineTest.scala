@@ -37,6 +37,18 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
       List(Keyword("do"), LexicalIdentifier("Foo"), LexicalSymbol('.'), LexicalIdentifier("bar"), LexicalSymbol('('), LexicalIntegerConstant(100), LexicalSymbol(','), LexicalStringConstant("b"), LexicalSymbol(','), LexicalIdentifier("c"), LexicalSymbol(')'), LexicalSymbol(';')))
   }
 
+  "compileVarDec" should "compile a varDeclaration" in {
+    val tokeniser = testTokeniser("var int average ;")
+    CompilationEngine.compileVarDec(tokeniser) shouldBe Right(List(Keyword("var"), Keyword("int"), LexicalIdentifier("average"), LexicalSymbol(';')))
+  }
+
+  it should "compile a varDeclarationWithMultipleVars" in {
+    val tokeniser = testTokeniser("var int average , sum , count ;")
+    CompilationEngine.compileVarDec(tokeniser) shouldBe Right(
+      List(Keyword("var"), Keyword("int"), LexicalIdentifier("average"), LexicalSymbol(','), LexicalIdentifier("sum"), LexicalSymbol(','), LexicalIdentifier("count"), LexicalSymbol(';'))
+    )
+  }
+
   "compile expression" should "compile a valid expression" in {
     def variable(s: String) = VarName(s)
     def exp(t: Term, o: Option[(Operator, Term)]) = Expression(t, o)
@@ -115,4 +127,6 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   }
 
   def testTokeniser(t: List[String]) = new FakeTokeniser(t)
+
+  def testTokeniser(spaceSeparatedString: String) = new FakeTokeniser(spaceSeparatedString.split(" ").toList)
 }

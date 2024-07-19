@@ -43,6 +43,14 @@ object CompilationEngine {
      } yield lexicalElements.toList
    }
    
+   def compileVarDec(t: Tokeniser): Either[String, List[LexicalElement]] = {
+     for {
+       _ <- assertTokenEqualsAndAdvance(t, "var")
+       varType <- getLexElementAsAndAdvance[LexicalElement](t, LexicalElement.keywordOrIndentifierFrom)
+       varNames <- getVarDecList(t)
+     } yield List(Keyword("var"), varType) ++ varNames :+ LexicalSymbol(';')
+   }
+   
    def compileIf(t: Tokeniser): Either[String, List[LexicalElement]] = {
      val lexicalElements = ArrayBuffer[LexicalElement]()
 
@@ -86,6 +94,19 @@ object CompilationEngine {
       case ")" => Right(varListSoFar).tap(_ => t.advance())
       case _ => getVarList(t, List())
 
+
+  private def getVarDecList(t: Tokeniser, soFar: List[LexicalElement] = List()): Either[String, List[LexicalElement]] =
+    for {
+      lexElem <- getLexElementAsAndAdvance[LexicalIdentifier](t, LexicalElement.identifierFrom)
+      nextToken <- assertNextTokenEqualsOneOf(t, Set(";", ","))
+      continue = nextToken == ","
+      newVarList = soFar :+ lexElem
+      r <- if (continue)
+        getVarDecList(t, newVarList :+ LexicalSymbol(','))
+      else
+        Right(newVarList)
+    } yield r
+
   private def getVarList(t: Tokeniser, soFar: List[LexicalElement] = List()): Either[String, List[LexicalElement]] =
     for {
       lexElem <- getTokenAsAndAdvance[Term](t, Term.from).map(_.toLexElem)
@@ -104,6 +125,9 @@ object CompilationEngine {
       case otherString => Left(s"uh-oh, expected $otherString to equal ${equals.toList.mkString(" or ")}")
 
   private def getTokenAsAndAdvance[T <: Token](t: Tokeniser, transformer: String => Either[String, T]): Either[String, T] =
+    transformer(t.currentToken).tap(_ => t.advance())
+
+  private def getLexElementAsAndAdvance[T <: LexicalElement](t: Tokeniser, transformer: String => Either[String, T]): Either[String, T] =
     transformer(t.currentToken).tap(_ => t.advance())
 
   private def assertTokenEqualsAndAdvance(t: Tokeniser, equals: String): Either[String, Unit] =
