@@ -51,6 +51,14 @@ object CompilationEngine {
      } yield List(Keyword("var"), varType) ++ varNames :+ LexicalSymbol(';')
    }
    
+   def compileReturn(t: Tokeniser): Either[String, List[LexicalElement]] = {
+     for {
+       _ <- assertTokenEqualsAndAdvance(t, "return")
+       //TODO handle non empty returns
+       _ <- assertTokenEqualsAndAdvance(t, ";")
+     } yield List(Keyword("return"), LexicalSymbol(';'))
+   }
+   
    def compileIf(t: Tokeniser): Either[String, List[LexicalElement]] = {
      val lexicalElements = ArrayBuffer[LexicalElement]()
 

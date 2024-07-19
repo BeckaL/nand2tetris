@@ -49,6 +49,20 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     )
   }
 
+  "compile return" should "compile an empty return statement" in {
+    val tokeniser = testTokeniser("return ;")
+    CompilationEngine.compileReturn(tokeniser) shouldBe Right(
+      List(Keyword("return"), LexicalSymbol(';'))
+    )
+  }
+
+  it should "return an error for an invalid return" in {
+    val tokeniser = testTokeniser("return + ;")
+    CompilationEngine.compileReturn(tokeniser) shouldBe Left(
+      "uh-oh, expected + to equal ;"
+    )
+  }
+
   "compile expression" should "compile a valid expression" in {
     def variable(s: String) = VarName(s)
     def exp(t: Term, o: Option[(Operator, Term)]) = Expression(t, o)
