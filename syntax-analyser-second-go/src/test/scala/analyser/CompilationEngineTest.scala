@@ -53,15 +53,30 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   "compileVarDec" should "compile a varDeclaration" in {
     val tokeniser = testTokeniser("var int average ;")
-    CompilationEngine.compileVarDec(tokeniser) shouldBe Right(
-      List(k("var"), k("int"), id("average"), sym(';')))
+    val expectedTokens = List(k("var"), k("int"), id("average"), sym(';'))
+
+    CompilationEngine.compileVarDec(tokeniser) shouldBe Right(expectedTokens)
   }
 
-  it should "compile a varDeclarationWithMultipleVars" in {
+  it should "compile a varDeclaration with multiple vars" in {
     val tokeniser = testTokeniser("var int average , sum , count ;")
-    CompilationEngine.compileVarDec(tokeniser) shouldBe Right(
-      List(k("var"), k("int"), id("average"), sym(','), id("sum"), sym(','), id("count"), sym(';'))
-    )
+    val expectedTokens = List(k("var"), k("int"), id("average"), sym(','), id("sum"), sym(','), id("count"), sym(';'))
+
+    CompilationEngine.compileVarDec(tokeniser) shouldBe Right(expectedTokens)
+  }
+
+  it should "compile a class var declaration" in {
+    val tokeniser = testTokeniser("static int average , sum , count ;")
+    val expectedTokens = List(k("static"), k("int"), id("average"), sym(','), id("sum"), sym(','), id("count"), sym(';'))
+
+    CompilationEngine.compileVarDec(tokeniser, true) shouldBe Right(expectedTokens)
+  }
+
+  it should "not compile an invalid class var declaration" in {
+    val tokeniser = testTokeniser("void int average , sum , count ;")
+    val expectedErrorMessage = "keyword void cannot be used as a var dec type"
+
+    CompilationEngine.compileVarDec(tokeniser, true) shouldBe Left(expectedErrorMessage)
   }
 
   "compile return" should "compile an empty return statement" in {
@@ -73,16 +88,12 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   it should "return an error for an invalid return" in {
     val tokeniser = testTokeniser("return + ;")
-    CompilationEngine.compileReturn(tokeniser) shouldBe Left(
-      "uh-oh, expected + to equal ;"
-    )
+    CompilationEngine.compileReturn(tokeniser) shouldBe Left("uh-oh, expected + to equal ;")
   }
 
   "compileParameterList" should "compile an empty parameter list" in {
     val tokeniser = testTokeniser("( )")
-    CompilationEngine.compileParameterList(tokeniser) shouldBe Right(
-      wrapBracket(List())
-    )
+    CompilationEngine.compileParameterList(tokeniser) shouldBe Right(wrapBracket(List()))
   }
 
   it should "compile a single parameter" in {

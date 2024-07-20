@@ -26,6 +26,14 @@ object LexicalElement {
       case _ => Left(s"Uh-oh, tried to parse keyword or identifier from $s")
   }
   
+  def varDecTypeFrom(s: String, classVarDec: Boolean): Either[String, Keyword] = {
+    val allowedTypes = if (classVarDec) TokenTypes.ALLOWED_CLASS_VAR_TYPES else Set("var")
+    TokenTypes.tokenType(s) match
+      case TokenTypes.Keyword if allowedTypes.contains(s) => Right(Keyword(s))
+      case TokenTypes.Keyword => Left(s"keyword $s cannot be used as a var dec type")
+      case _ => Left(s"Uh-oh, tried to parse keyword or identifier from $s")
+  }
+  
   def subroutineTypeFrom(s: String): Either[String, Keyword] = {
     TokenTypes.tokenType(s) match {
       case TokenTypes.Keyword if TokenTypes.ALLOWED_SUBROUTINE_TYPES.contains(s)=>

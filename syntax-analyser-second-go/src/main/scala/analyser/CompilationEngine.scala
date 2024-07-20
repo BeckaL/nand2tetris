@@ -40,12 +40,12 @@ object CompilationEngine {
      } yield lexicalElements.toList
    }
    
-   def compileVarDec(t: Tokeniser): Either[String, List[LexicalElement]] = {
+   def compileVarDec(t: Tokeniser, classDec: Boolean = false): Either[String, List[LexicalElement]] = {
      for {
-       _ <- assertTokenEqualsAndAdvance(t, "var")
-       varType <- getLexElementAsAndAdvance[LexicalElement](t, LexicalElement.keywordOrIndentifierFrom)
+       decType  <- getLexElementAsAndAdvance[Keyword](t, LexicalElement.varDecTypeFrom(_, classDec)) 
+       varType  <- getLexElementAsAndAdvance[LexicalElement](t, LexicalElement.keywordOrIndentifierFrom)
        varNames <- getVarDecList(t)
-     } yield List(Keyword("var"), varType) ++ varNames :+ LexicalSymbol(';')
+     } yield List(decType, varType) ++ varNames :+ LexicalSymbol(';')
    }
    
    def compileReturn(t: Tokeniser): Either[String, List[LexicalElement]] = {
