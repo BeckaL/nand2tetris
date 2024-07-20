@@ -84,6 +84,16 @@ object CompilationEngine {
      } yield LexicalSymbol('{') +: List(varDecs, statements).flatten :+ LexicalSymbol('}')  
    }
    
+   def compileSubroutine(t: Tokeniser): Either[String, List[LexicalElement]] = {
+     for {
+       subroutineType <- getLexElementAsAndAdvance[Keyword](t, LexicalElement.subroutineTypeFrom)
+       returnType <- getLexElementAsAndAdvance[LexicalElement](t, LexicalElement.returnTypeFrom)
+       subroutineName <- getLexElementAsAndAdvance[LexicalElement](t, LexicalElement.identifierFrom)
+       params <- compileParameterList(t)
+       body <- compileSubroutineBody(t)
+     } yield List(subroutineType, returnType, subroutineName) ++ params ++ body
+   }
+   
    @tailrec
    private def compileOptionalStatements(t: Tokeniser, current: List[LexicalElement] = List()): Either[String, List[LexicalElement]] = {
      compileStatement(t) match {
@@ -154,7 +164,7 @@ object CompilationEngine {
 
   private def getVarParamList(t: Tokeniser, soFar: List[LexicalElement] = List()): Either[String, List[LexicalElement]] =
     for {
-      varType <- getLexElementAsAndAdvance[LexicalElement](t, LexicalElement.keywordOrIndentifierFrom)
+      varType <- getLexElementAsAndAdvance[LexicalElement](t, LexicalElement.keywordOrIndentifierFrom) //TODO this can return an invalid type
       identifier <- getLexElementAsAndAdvance[LexicalIdentifier](t, LexicalElement.identifierFrom)
       nextToken <- assertNextTokenEqualsOneOf(t, Set(")", ","))
       continue = nextToken == ","

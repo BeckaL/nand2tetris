@@ -5,6 +5,9 @@ object TokenTypes extends Enumeration {
 
   val Keyword, Symbol, Identifier, IntConst, StringConst = Value
 
+  val ALLOWED_SUBROUTINE_RETURN_TYPES: Set[String] = Set("void", "int", "char", "boolean")
+  val ALLOWED_SUBROUTINE_TYPES: Set[String] = Set("constructor", "function", "method")
+
   def tokenType(currentToken: String): TokenType =
     if (keywordsRegex.matches(currentToken))
       Keyword

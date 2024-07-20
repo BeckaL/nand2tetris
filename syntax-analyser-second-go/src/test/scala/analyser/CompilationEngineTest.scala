@@ -106,19 +106,19 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   object CompileSubroutineBodyHelper {
     val singleVarDec = "var MyClass blah ;"
-    val singleVarDecTokens: List[LexicalElement] = 
+    val singleVarDecTokens: List[LexicalElement] =
       List(k("var"), id("MyClass"), id("blah"), sym(';'));
 
     val multipleVarDecs = "var int count , sum ; var char myChar ;"
-    val multipleVarDecsTokens: List[LexicalElement] = 
+    val multipleVarDecsTokens: List[LexicalElement] =
       List(k("var"), k("int"), id("count"), sym(','), id("sum"), sym(';'), k("var"), k("char"), id("myChar"), sym(';'))
 
     val multipleLetStatements = "let count = 5 ; let sum = 10 ;"
-    val multipleLetTokens: List[LexicalElement] = 
+    val multipleLetTokens: List[LexicalElement] =
       List(k("let"), id("count"), sym('='), int(5), sym(';'), k("let"), id("sum"), sym('='), int(10), sym(';'))
 
     val doStatement = "do Output . print ( myChar ) ;"
-    val doTokens: List[LexicalElement] = 
+    val doTokens: List[LexicalElement] =
       List(k("do"), id("Output"), sym('.'), id("print"), sym('('), id("myChar"), sym(')'), sym(';'))
 
     val returnStatement = "return ;"
@@ -177,6 +177,52 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
       val expectedOutput = wrapCurly(expectedStatementSymbols)
       CompilationEngine.compileSubroutineBody(testTokeniser(input)) shouldBe Right(expectedOutput)
     }
+  }
+
+  object CompileSubroutineHelper {
+    import CompileSubroutineBodyHelper.*
+
+    val methodDeclaration = "method int myMethod ( )"
+    val methodDeclarationTokens: List[LexicalElement] = List(k("method"), k("int"), id("myMethod"), sym('('), sym(')'))
+
+    val functionDeclaration = "function void myFunction ( boolean a )"
+    val functionDeclarationTokens: List[LexicalElement] = List(k("function"), k("void"), id("myFunction")) ++ wrapBracket(List(k("boolean"), id("a")))
+
+    val constructorDeclaration = "constructor MyClass constructMyClass ( char a )"
+    val constructorDeclarationTokens: List[LexicalElement] =
+      List(k("constructor"), id("MyClass"), id("constructMyClass")) ++
+        wrapBracket(List(k("char"), id("a")))
+
+    val methodDeclarationWithInvalidReturnType = "method class myMethod ( )"
+
+    val returnBody = wrapCurly(returnStatement)
+    val returnBodyTokens: List[LexicalElement] = wrapCurly(returnTokens)
+  }
+
+  "compileSubroutine" should "compile a valid subroutine" in {
+    import CompileSubroutineHelper.*
+
+    val table = Table(
+      ("subroutineDeclaration", "expectedSubroutineDeclarationTokens"),
+      (methodDeclaration, methodDeclarationTokens),
+      (functionDeclaration, functionDeclarationTokens),
+      (constructorDeclaration, constructorDeclarationTokens)
+    )
+
+    forAll(table){ case (subroutineDeclaration, expectedSubroutineDeclarationTokens) =>
+      val input = subroutineDeclaration + " " + returnBody
+      val expectedSymbols = expectedSubroutineDeclarationTokens ++ returnBodyTokens
+
+      CompilationEngine.compileSubroutine(testTokeniser(input)) shouldBe Right(expectedSymbols)
+    }
+  }
+
+  it should "not compile a subroutine with an invalid return type" in {
+    import CompileSubroutineHelper.*
+
+    val input = methodDeclarationWithInvalidReturnType + " " + returnBody
+
+    CompilationEngine.compileSubroutine(testTokeniser(input)) shouldBe Left("keyword class cannot be used as a return type")
   }
 
   private def wrapCurly(s: String) = if (s.nonEmpty) "{ " + s + " }" else "{ }"

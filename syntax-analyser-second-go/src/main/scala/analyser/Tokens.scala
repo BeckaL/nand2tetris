@@ -20,18 +20,40 @@ case class LexicalIdentifier(id: String) extends LexicalElement {
 
 object LexicalElement {
   def keywordOrIndentifierFrom(s: String): Either[String, LexicalElement] = {
-    TokenTypes.tokenType(s) match {
+    TokenTypes.tokenType(s) match
       case TokenTypes.Keyword => Right(Keyword(s))
       case TokenTypes.Identifier => Right(LexicalIdentifier(s))
       case _ => Left(s"Uh-oh, tried to parse keyword or identifier from $s")
-    } 
+  }
+  
+  def subroutineTypeFrom(s: String): Either[String, Keyword] = {
+    TokenTypes.tokenType(s) match {
+      case TokenTypes.Keyword if TokenTypes.ALLOWED_SUBROUTINE_TYPES.contains(s)=>
+          Right(Keyword(s))
+      case TokenTypes.Keyword => Left(s"keyword $s cannot be used as a subroutine type")
+      case _ => Left(s"Uh-oh, tried to parse subroutine type from $s")
+    }
+  }
+  
+  def returnTypeFrom(s: String): Either[String, LexicalElement] = {
+    TokenTypes.tokenType(s) match 
+      case TokenTypes.Keyword if TokenTypes.ALLOWED_SUBROUTINE_RETURN_TYPES.contains(s) =>  
+          Right(Keyword(s))
+      case TokenTypes.Keyword => Left(s"keyword $s cannot be used as a return type")
+      case TokenTypes.Identifier => Right(LexicalIdentifier(s))
+      case _ => Left(s"Uh-oh, tried to parse return type or identifier from $s")
+  }
+  
+  def keywordFrom(s: String): Either[String, Keyword] = {
+    TokenTypes.tokenType(s) match
+      case TokenTypes.Keyword => Right(Keyword(s))
+      case _ => Left(s"Uh-oh, tried to parse keyword from $s")
   }
   
   def identifierFrom(s: String): Either[String, LexicalIdentifier] = {
-    TokenTypes.tokenType(s) match {
+    TokenTypes.tokenType(s) match 
       case TokenTypes.Identifier => Right(LexicalIdentifier(s))
       case _ => Left(s"Uh-oh, tried to parse identifier from $s")
-    }
   }
 }
 
