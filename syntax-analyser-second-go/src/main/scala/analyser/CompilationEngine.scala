@@ -1,7 +1,6 @@
 package analyser
 
 import scala.annotation.tailrec
-import scala.collection.mutable.ArrayBuffer
 import util.chaining.scalaUtilChainingOps
 
 object CompilationEngine {
@@ -9,36 +8,29 @@ object CompilationEngine {
   def compileLet(tokeniser: Tokeniser): Either[String, List[LexicalElement]] = {
     for {
       _ <- assertTokenEqualsAndAdvance(tokeniser, "let")
-      variable <- getTokenAsAndAdvance[Term](tokeniser, Term.from)
+      variable <- getLexElementAsAndAdvance[LexicalIdentifier](tokeniser, LexicalElement.identifierFrom)
       _ <- assertTokenEqualsAndAdvance(tokeniser, "=")
       expression <- getTokenAsAndAdvance[Term](tokeniser, Term.from)
       _ <- assertTokenEqualsAndAdvance(tokeniser, ";")
     } yield List(
-      Keyword("let"), variable.toLexElem, LexicalSymbol('='), expression.toLexElem, LexicalSymbol(';')
+      Keyword("let"), variable, LexicalSymbol('='), expression.toLexElem, LexicalSymbol(';')
     )
   }
   
    def compileDo(t: Tokeniser): Either[String, List[LexicalElement]] = {
-     val lexicalElements = ArrayBuffer[LexicalElement]()
-
      for {
        _ <- assertTokenEqualsAndAdvance(t, "do")
-       _ = lexicalElements.addOne(Keyword("do"))
-       variable <- getTokenAsAndAdvance[Term](t, Term.from)
-       _ = lexicalElements.addOne(variable.toLexElem)
+       variable <- getLexElementAsAndAdvance[LexicalIdentifier](t, LexicalElement.identifierFrom)
        _ <- assertTokenEqualsAndAdvance(t, ".")
-       _ = lexicalElements.addOne(LexicalSymbol('.'))
-       method <- getTokenAsAndAdvance[Term](t, Term.from)
-       _ = lexicalElements.addOne(method.toLexElem)
+       method <- getLexElementAsAndAdvance[LexicalIdentifier](t, LexicalElement.identifierFrom)
        _ <- assertTokenEqualsAndAdvance(t, "(")
-       _ = lexicalElements.addOne(LexicalSymbol('('))
        list <- getOptionalListOfVarsFollowedByClosingChar(t)
-       _ = lexicalElements.addAll(list)
-       _ = lexicalElements.addOne(LexicalSymbol(')'))
        _ <- assertTokenEqualsAndAdvance(t, ";")
-       _ = lexicalElements.addOne(LexicalSymbol(';'))
-     } yield lexicalElements.toList
+     } yield List(Keyword("do"), variable, LexicalSymbol('.'), method) ++ wrapBrackets(list) :+ LexicalSymbol(';')
    }
+   
+   private def wrapBrackets(l: List[LexicalElement]): List[LexicalElement] = (LexicalSymbol('(') +: l) :+ LexicalSymbol(')') 
+   private def wrapCurlyBrackets(l: List[LexicalElement]): List[LexicalElement] = (LexicalSymbol('{') +: l) :+ LexicalSymbol('}') 
    
    def compileVarDec(t: Tokeniser, classDec: Boolean = false): Either[String, List[LexicalElement]] = {
      for {
@@ -59,10 +51,10 @@ object CompilationEngine {
    //TODO make compileStatements
    def compileStatement(t: Tokeniser): Either[String, List[LexicalElement]] = {
      val r = t.currentToken match {
-       case "let" => compileLet(t)
-       case "do" => compileDo(t)
-       case "if" => compileIf(t)
-       case "return" => compileReturn(t)
+       case "let"      => compileLet(t)
+       case "do"       => compileDo(t)
+       case "if"       => compileIf(t)
+       case "return"   => compileReturn(t)
        case otherToken => Left(s"uh oh $otherToken")
      }
      r
@@ -70,17 +62,17 @@ object CompilationEngine {
    
    def compileParameterList(t: Tokeniser): Either[String, List[LexicalElement]] = {
      for {
-       _ <- assertTokenEqualsAndAdvance(t, "(")
+       _         <- assertTokenEqualsAndAdvance(t, "(")
        paramList <- getOptionalVarParamList(t)
      } yield LexicalSymbol('(') +: paramList :+ LexicalSymbol(')')
    }
 
    def compileSubroutineBody(t: Tokeniser): Either[String, List[LexicalElement]] = {
      for {
-       _ <- assertTokenEqualsAndAdvance(t, "{")
-       varDecs <- compileOptionalVarDecs(t)
+       _          <- assertTokenEqualsAndAdvance(t, "{")
+       varDecs    <- compileOptionalVarDecs(t)
        statements <- compileOptionalStatements(t)
-       _ <- assertTokenEqualsAndAdvance(t, "}")
+       _          <- assertTokenEqualsAndAdvance(t, "}")
      } yield LexicalSymbol('{') +: List(varDecs, statements).flatten :+ LexicalSymbol('}')  
    }
    
@@ -113,26 +105,30 @@ object CompilationEngine {
      }
    }
    
-   @tailrec
-   private def compileOptionalSubroutines(t: Tokeniser, current: List[LexicalElement] = List()): Either[String, List[LexicalElement]] = {
-     val stop = !TokenTypes.ALLOWED_SUBROUTINE_TYPES.contains(t.currentToken)
-     if (stop) 
-       Right(current)
-     else 
-       compileSubroutine(t) match 
-         case Left(s) => Left(s)
-         case Right(tokens) => compileOptionalSubroutines(t, current ++ tokens)
+   private def compileOptional(t: Tokeniser, stop: Tokeniser => Boolean, compile: Tokeniser => Either[String, List[LexicalElement]]) = {
+     @tailrec
+     def go(current: List[LexicalElement]): Either[String, List[LexicalElement]] = {
+       if (stop(t))
+         Right(current)
+       else  
+         compile(t) match 
+           case Left(err) => Left(err)
+           case Right(tokens) => go(current ++ tokens)
+     }
+     go(List())
    }
    
-   @tailrec
+   private def compileOptionalSubroutines(t: Tokeniser, current: List[LexicalElement] = List()): Either[String, List[LexicalElement]] = {
+     val stopFunction = (tokeniser: Tokeniser) => !TokenTypes.ALLOWED_SUBROUTINE_TYPES.contains(tokeniser.currentToken)
+     compileOptional(t, stopFunction, compileSubroutine)
+   }
+   
    private def compileOptionalVarDecs(t: Tokeniser, classDec: Boolean = false, current: List[LexicalElement] = List()): Either[String, List[LexicalElement]] = {
-     val stop = if (classDec) !TokenTypes.ALLOWED_CLASS_VAR_TYPES.contains(t.currentToken) else t.currentToken != "var"
-     if (stop) 
-       Right(current)
+     val stopFunction = (tokeniser: Tokeniser) => if (classDec) 
+       !TokenTypes.ALLOWED_CLASS_VAR_TYPES.contains(tokeniser.currentToken) 
      else 
-       compileVarDec(t, classDec) match
-         case Left(s) => Left(s)
-         case Right(tokens) => compileOptionalVarDecs(t, classDec, current ++ tokens)
+       tokeniser.currentToken != "var"
+     compileOptional(t, stopFunction, compileVarDec(_, classDec))
    }
 
    private def getOptionalVarParamList(t: Tokeniser, soFar: List[LexicalElement] = List()): Either[String, List[LexicalElement]] = {
@@ -142,29 +138,17 @@ object CompilationEngine {
    } 
    
    def compileIf(t: Tokeniser): Either[String, List[LexicalElement]] = { //TODO add else
-     val lexicalElements = ArrayBuffer[LexicalElement]()
-
      for {
        _ <- assertTokenEqualsAndAdvance(t, "if")
-       _ = lexicalElements.addOne(Keyword("if"))
        _ <- assertTokenEqualsAndAdvance(t, "(")
-       _ = lexicalElements.addOne(LexicalSymbol('('))
-       variable <- getTokenAsAndAdvance[Term](t, Term.from)
-       _ = lexicalElements.addOne(variable.toLexElem)
+       variable <- getLexElementAsAndAdvance[LexicalIdentifier](t, LexicalElement.identifierFrom)
        operator <- getTokenAsAndAdvance[Operator](t, Operator.from)
-       _ = lexicalElements.addOne(operator.toLexElem)
        evaluatedTo <- getTokenAsAndAdvance[Term](t, Term.from)
-       _ = lexicalElements.addOne(evaluatedTo.toLexElem)
        _ <- assertTokenEqualsAndAdvance(t, ")")
-       _ = lexicalElements.addOne(LexicalSymbol(')'))
        _ <- assertTokenEqualsAndAdvance(t, "{")
-       _ = lexicalElements.addOne(LexicalSymbol('{'))
        letElems <- compileLet(t)
-       _ = lexicalElements.addAll(letElems)
        _ <- assertTokenEqualsAndAdvance(t, "}")
-       _ = lexicalElements.addOne(LexicalSymbol('}'))
-     } yield lexicalElements.toList
-     
+     } yield (Keyword("let") +: wrapBrackets(List(variable, operator.toLexElem, evaluatedTo.toLexElem))) ++ wrapCurlyBrackets(letElems)
    }
 
   def compileExpression(t: Tokeniser): Either[String, Expression] =
