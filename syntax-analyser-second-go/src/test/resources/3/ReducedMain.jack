@@ -10,11 +10,11 @@ class Main {
     function void main() {
         var int average;
 	
-	let average = 4;
-	do Output.printString("THE AVERAGE IS: ");
-	do Output.printInt(average);
-	do Output.println();
-	
-	return;
+	    let average = 4;
+	    do Output.printString("THE AVERAGE IS: ");
+	    do Output.printInt(average);
+	    do Output.println();
+
+	    return;
     }
 }

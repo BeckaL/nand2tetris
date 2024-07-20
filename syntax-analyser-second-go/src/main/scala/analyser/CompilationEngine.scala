@@ -1,5 +1,6 @@
 package analyser
 
+import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 import util.chaining.scalaUtilChainingOps
 
@@ -57,12 +58,14 @@ object CompilationEngine {
    
    //TODO make compileStatements
    def compileStatement(t: Tokeniser): Either[String, List[LexicalElement]] = {
-     t.currentToken match {
+     val r = t.currentToken match {
        case "let" => compileLet(t)
        case "do" => compileDo(t)
        case "if" => compileIf(t)
-       case otherToken => throw new RuntimeException(s"uh oh $otherToken")
+       case "return" => compileReturn(t)
+       case otherToken => Left(s"uh oh $otherToken")
      }
+     r
    }
    
    def compileParameterList(t: Tokeniser): Either[String, List[LexicalElement]] = {
@@ -71,7 +74,34 @@ object CompilationEngine {
        paramList <- getOptionalVarParamList(t)
      } yield LexicalSymbol('(') +: paramList :+ LexicalSymbol(')')
    }
+
+   def compileSubroutineBody(t: Tokeniser): Either[String, List[LexicalElement]] = {
+     for {
+       _ <- assertTokenEqualsAndAdvance(t, "{")
+       varDecs <- compileOptionalVarDecs(t)
+       statements <- compileOptionalStatements(t)
+       _ <- assertTokenEqualsAndAdvance(t, "}")
+     } yield LexicalSymbol('{') +: List(varDecs, statements).flatten :+ LexicalSymbol('}')  
+   }
    
+   @tailrec
+   private def compileOptionalStatements(t: Tokeniser, current: List[LexicalElement] = List()): Either[String, List[LexicalElement]] = {
+     compileStatement(t) match {
+       case Left(_) => Right(current)
+       case Right(s) => compileOptionalStatements(t, current ++ s)
+     }
+   }
+   
+   @tailrec
+   private def compileOptionalVarDecs(t: Tokeniser, current: List[LexicalElement] = List()): Either[String, List[LexicalElement]] = {
+     if (t.currentToken != "var") 
+       Right(current)
+     else 
+       compileVarDec(t) match
+         case Left(s) => Left(s)
+         case Right(tokens) => compileOptionalVarDecs(t, current ++ tokens)
+   }
+
    private def getOptionalVarParamList(t: Tokeniser, soFar: List[LexicalElement] = List()): Either[String, List[LexicalElement]] = {
      t.currentToken match
        case ")" => Right(soFar).tap(_ => t.advance())
