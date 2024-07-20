@@ -236,8 +236,42 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     CompilationEngine.compileSubroutine(testTokeniser(input)) shouldBe Left("keyword class cannot be used as a return type")
   }
 
-  private def wrapCurly(s: String) = if (s.nonEmpty) "{ " + s + " }" else "{ }"
+  object CompileClassHelper {
+    import CompileSubroutineHelper.*
 
+    val classDec = "class myClass"
+    val classDecTokens = List(k("class"), id("myClass"))
+
+    val fieldDecs = "static int myInt , myCount ; field char myChar ;"
+    val fieldDecTokens = List(k("static"), k("int"), id("myInt"), sym(','), id("myCount"), sym(';'), k("field"), k("char"), id("myChar"), sym(';'))
+
+    val methodDec = methodDeclaration + " " + returnBody
+    val methodDecTokens = methodDeclarationTokens ++ returnBodyTokens
+
+    val functionDec = functionDeclaration + " " + returnBody
+    val functionDecTokens = functionDeclarationTokens ++ returnBodyTokens
+  }
+
+  "compileClass" should "compile a class with an arbitrary number of subroutines" in {
+    import CompileClassHelper.*
+
+    val data = Table(
+      ("maybeSubroutineDec", "subroutineDecTokens"),
+      (Some(methodDec), methodDecTokens),
+      (Some(methodDec + " " + functionDec), methodDecTokens ++ functionDecTokens),
+      (None, List())
+    )
+
+    forAll(data){ case (maybeSubroutineDec, subroutineDecTokens) =>
+      val subroutineDecString = maybeSubroutineDec.map(" " + _).getOrElse("")
+      val input = classDec + " " + wrapCurly(fieldDecs + subroutineDecString)
+      val expectedTokens = classDecTokens ++ wrapCurly(fieldDecTokens ++ subroutineDecTokens)
+
+      CompilationEngine.compileClass(testTokeniser(input)) shouldBe Right(expectedTokens)
+    }
+  }
+
+  private def wrapCurly(s: String) = if (s.nonEmpty) "{ " + s + " }" else "{ }"
   private def wrapCurly(l: List[LexicalElement]) = (sym('{') +: l) :+ sym('}')
   private def wrapBracket(s: String) =  if (s.nonEmpty) "( " + s + " )" else "( )"
   private def wrapBracket(l: List[LexicalElement]) = (sym('(') +: l) :+ sym(')')
@@ -267,67 +301,17 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     }
   }
 
-  //  class SquareGame {
-  //    field Square square;
-  //    field int direction;
-  //
-  //    constructor SquareGame new() {
-  //      let square = square;
-  //      let direction = direction;
-  //      return square;
-  //    }
-  //
-  //    method void dispose() {
-  //      do square.dispose();
-  //      do Memory.deAlloc(square);
-  //      return;
-  //    }
-  //
-  //    method void moveSquare() {
-  //      if (direction) { do square.moveUp(); }
-  //      if (direction) { do square.moveDown(); }
-  //      if (direction) { do square.moveLeft(); }
-  //      if (direction) { do square.moveRight(); }
-  //      do Sys.wait(direction);
-  //      return;
-  //    }class SquareGame {
-  //      field Square square;
-  //      field int direction;
-  //
-  //      constructor SquareGame new() {
-  //        let square = square;
-  //        let direction = direction;
-  //        return square;
-  //      }
-  //
-  //      method void dispose() {
-  //        do square.dispose();
-  //        do Memory.deAlloc(square);
-  //        return;
-  //      }
-  //
-  //      method void moveSquare() {
-  //        if (direction) { do square.moveUp(); }
-  //        if (direction) { do square.moveDown(); }
-  //        if (direction) { do square.moveLeft(); }
-  //        if (direction) { do square.moveRight(); }
-  //        do Sys.wait(direction);
-  //        return;
-  //      }
-
   class FakeTokeniser(var tokens: List[String]) extends Tokeniser {
-    override def advance() = {
-      tokens = tokens.tail
-    }
+    override def advance(): Unit = tokens = tokens.tail
 
     def allTokens: Seq[String] = tokens.tail
 
-    override def currentToken = tokens.head
+    override def currentToken: String = tokens.head
 
-    override def hasMoreTokens: Boolean = tokens.size > 0
+    override def hasMoreTokens: Boolean = tokens.nonEmpty
   }
 
-  def testTokeniser(t: List[String]) = new FakeTokeniser(t)
+  def testTokeniser(l: List[String]) = new FakeTokeniser(l)
 
   def testTokeniser(spaceSeparatedString: String) = new FakeTokeniser(spaceSeparatedString.split(" ").toList)
 }

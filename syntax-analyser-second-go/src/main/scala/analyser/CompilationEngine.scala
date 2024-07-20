@@ -94,6 +94,17 @@ object CompilationEngine {
      } yield List(subroutineType, returnType, subroutineName) ++ params ++ body
    }
    
+   def compileClass(t: Tokeniser): Either[String, List[LexicalElement]] = {
+     for {
+       _           <- assertTokenEqualsAndAdvance(t, "class")
+       className   <- getLexElementAsAndAdvance[LexicalIdentifier](t, LexicalElement.identifierFrom)
+       _           <- assertTokenEqualsAndAdvance(t, "{")
+       classVars   <- compileOptionalVarDecs(t, true)
+       subroutines <- compileOptionalSubroutines(t)
+       _           <- assertTokenEqualsAndAdvance(t, "}")
+     } yield List(Keyword("class"), className, LexicalSymbol('{')) ++ classVars ++ subroutines ++ List(LexicalSymbol('}')) 
+   }
+   
    @tailrec
    private def compileOptionalStatements(t: Tokeniser, current: List[LexicalElement] = List()): Either[String, List[LexicalElement]] = {
      compileStatement(t) match {
@@ -103,13 +114,25 @@ object CompilationEngine {
    }
    
    @tailrec
-   private def compileOptionalVarDecs(t: Tokeniser, current: List[LexicalElement] = List()): Either[String, List[LexicalElement]] = {
-     if (t.currentToken != "var") 
+   private def compileOptionalSubroutines(t: Tokeniser, current: List[LexicalElement] = List()): Either[String, List[LexicalElement]] = {
+     val stop = !TokenTypes.ALLOWED_SUBROUTINE_TYPES.contains(t.currentToken)
+     if (stop) 
        Right(current)
      else 
-       compileVarDec(t) match
+       compileSubroutine(t) match 
          case Left(s) => Left(s)
-         case Right(tokens) => compileOptionalVarDecs(t, current ++ tokens)
+         case Right(tokens) => compileOptionalSubroutines(t, current ++ tokens)
+   }
+   
+   @tailrec
+   private def compileOptionalVarDecs(t: Tokeniser, classDec: Boolean = false, current: List[LexicalElement] = List()): Either[String, List[LexicalElement]] = {
+     val stop = if (classDec) !TokenTypes.ALLOWED_CLASS_VAR_TYPES.contains(t.currentToken) else t.currentToken != "var"
+     if (stop) 
+       Right(current)
+     else 
+       compileVarDec(t, classDec) match
+         case Left(s) => Left(s)
+         case Right(tokens) => compileOptionalVarDecs(t, classDec, current ++ tokens)
    }
 
    private def getOptionalVarParamList(t: Tokeniser, soFar: List[LexicalElement] = List()): Either[String, List[LexicalElement]] = {
@@ -118,7 +141,7 @@ object CompilationEngine {
        case _ => getVarParamList(t, List())
    } 
    
-   def compileIf(t: Tokeniser): Either[String, List[LexicalElement]] = {
+   def compileIf(t: Tokeniser): Either[String, List[LexicalElement]] = { //TODO add else
      val lexicalElements = ArrayBuffer[LexicalElement]()
 
      for {
