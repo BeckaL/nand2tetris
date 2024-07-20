@@ -271,6 +271,40 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     }
   }
 
+  "compileTerm" should "compile a simple term" in {
+    val data = Table(
+      ("term", "expectedLexElems"),
+      ("100", List(int(100))),
+      ("\"foo\"", List(str("foo"))),
+      ("true", List(Keyword("true"))),
+      ("false", List(Keyword("false"))),
+      ("null", List(Keyword("null"))),
+      ("this", List(Keyword("this"))),
+      ("myVar", List(id("myVar"))),
+//      ("myVar [ 100 ]", List(id("myVar"), sym('['), int(100), sym(']'))) //TODO
+//      ("- 100", List(UnaryOperator('-'), int(100))),
+//      ("myVar . myMethod ( )", List(id("myVar"), sym('.'), id("myMethod"), sym('('), sym(')'))),
+//      ("myMethod ( )", List(id("myMethod"), sym('('), sym(')'))),
+//      ("( 100 )", List(sym('('), int(100), sym(')')))
+    )
+
+    forAll(data){ case (term, expectedLexElems) =>
+      CompilationEngine.compileTerm(testTokeniser(term)) shouldBe Right(expectedLexElems)
+    }
+  }
+
+  it should "return an error for an invalid term" in {
+    val data = Table(
+      ("invalidTerm", "expectedError"),
+      ("class", "Cannot create keyword const from keyword class")
+    )
+
+    forAll(data) { case (invalidTerm, expectedError) => {
+      CompilationEngine.compileTerm(testTokeniser(invalidTerm)) shouldBe Left(expectedError)
+    }
+    }
+  }
+
   private def wrapCurly(s: String) = if (s.nonEmpty) "{ " + s + " }" else "{ }"
   private def wrapCurly(l: List[LexicalElement]) = (sym('{') +: l) :+ sym('}')
   private def wrapBracket(s: String) =  if (s.nonEmpty) "( " + s + " )" else "( )"

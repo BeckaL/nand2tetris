@@ -5,9 +5,11 @@ object TokenTypes extends Enumeration {
 
   val Keyword, Symbol, Identifier, IntConst, StringConst = Value
 
-  val ALLOWED_SUBROUTINE_RETURN_TYPES: Set[String] = Set("void", "int", "char", "boolean")
-  val ALLOWED_SUBROUTINE_TYPES: Set[String] = Set("constructor", "function", "method")
-  val ALLOWED_CLASS_VAR_TYPES: Set[String] = Set("static", "field")
+  val SUBROUTINE_RETURN_TYPES: Set[String] = Set("void", "int", "char", "boolean")
+  val SUBROUTINE_TYPES: Set[String] = Set("constructor", "function", "method")
+  val CLASS_VAR_TYPES: Set[String] = Set("static", "field")
+  val KEYWORD_CONSTANTS: Set[String] = Set("true", "false", "null", "this")
+  val UNARY_OPERATORS = Set("-", "~")
 
   def tokenType(currentToken: String): TokenType =
     if (keywordsRegex.matches(currentToken))

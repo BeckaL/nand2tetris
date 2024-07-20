@@ -17,6 +17,9 @@ case class LexicalStringConstant(s: String) extends LexicalElement {
 case class LexicalIdentifier(id: String) extends LexicalElement {
   override def toTokenString: String = s"<identifier> $id </identifier>"
 }
+case class UnaryOperator(s: Char) extends LexicalElement {
+  override def toTokenString: String = s"<symbol> $s </symbol>"
+}
 
 object LexicalElement {
   def keywordOrIndentifierFrom(s: String): Either[String, LexicalElement] = {
@@ -25,9 +28,12 @@ object LexicalElement {
       case TokenTypes.Identifier => Right(LexicalIdentifier(s))
       case _ => Left(s"Uh-oh, tried to parse keyword or identifier from $s")
   }
+
+  def intConstant(s: String): LexicalIntegerConstant = LexicalIntegerConstant(s.toInt)
+  def strConstant(s: String): LexicalStringConstant = LexicalStringConstant(s.tail.dropRight(1))
   
   def varDecTypeFrom(s: String, classVarDec: Boolean): Either[String, Keyword] = {
-    val allowedTypes = if (classVarDec) TokenTypes.ALLOWED_CLASS_VAR_TYPES else Set("var")
+    val allowedTypes = if (classVarDec) TokenTypes.CLASS_VAR_TYPES else Set("var")
     TokenTypes.tokenType(s) match
       case TokenTypes.Keyword if allowedTypes.contains(s) => Right(Keyword(s))
       case TokenTypes.Keyword => Left(s"keyword $s cannot be used as a var dec type")
@@ -36,7 +42,7 @@ object LexicalElement {
   
   def subroutineTypeFrom(s: String): Either[String, Keyword] = {
     TokenTypes.tokenType(s) match {
-      case TokenTypes.Keyword if TokenTypes.ALLOWED_SUBROUTINE_TYPES.contains(s)=>
+      case TokenTypes.Keyword if TokenTypes.SUBROUTINE_TYPES.contains(s)=>
           Right(Keyword(s))
       case TokenTypes.Keyword => Left(s"keyword $s cannot be used as a subroutine type")
       case _ => Left(s"Uh-oh, tried to parse subroutine type from $s")
@@ -45,7 +51,7 @@ object LexicalElement {
   
   def returnTypeFrom(s: String): Either[String, LexicalElement] = {
     TokenTypes.tokenType(s) match 
-      case TokenTypes.Keyword if TokenTypes.ALLOWED_SUBROUTINE_RETURN_TYPES.contains(s) =>  
+      case TokenTypes.Keyword if TokenTypes.SUBROUTINE_RETURN_TYPES.contains(s) =>  
           Right(Keyword(s))
       case TokenTypes.Keyword => Left(s"keyword $s cannot be used as a return type")
       case TokenTypes.Identifier => Right(LexicalIdentifier(s))
