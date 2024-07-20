@@ -18,12 +18,14 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   "compileLet" should "compile a valid let statement" in {
     val tokeniser = testTokeniser("let count = count ;")
-    CompilationEngine.compileLet(tokeniser) shouldBe Right(List(k("let"), id("count"), sym('='), id("count"), sym(';')))
+    CompilationEngine.compileLet(tokeniser) shouldBe Right(
+      List(k("let"), id("count"), sym('='), id("count"), sym(';')))
   }
 
   it should "compile a valid let statement with an integer constant" in {
     val tokeniser = testTokeniser("let count = 100 ;")
-    CompilationEngine.compileLet(tokeniser) shouldBe Right(List(k("let"), id("count"), sym('='), int(100), sym(';')))
+    CompilationEngine.compileLet(tokeniser) shouldBe Right(
+      List(k("let"), id("count"), sym('='), int(100), sym(';')))
   }
 
   it should "throw an error on an invalid let statement" in {
@@ -33,12 +35,14 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   it should "compile a do statement with a single expression and no params" in {
     val tokeniser = testTokeniser("do square . dispose ( ) ;")
-    CompilationEngine.compileDo(tokeniser) shouldBe Right(List(k("do"), id("square"), sym('.'), id("dispose"), sym('('), sym(')'), sym(';')))
+    CompilationEngine.compileDo(tokeniser) shouldBe Right(
+      List(k("do"), id("square"), sym('.'), id("dispose"), sym('('), sym(')'), sym(';')))
   }
 
   it should "compile a do statement with a single param" in {
     val tokeniser = testTokeniser("do Memory . deAlloc ( square ) ;")
-    CompilationEngine.compileDo(tokeniser) shouldBe Right(List(k("do"), id("Memory"), sym('.'), id("deAlloc"), sym('('), id("square"), sym(')'), sym(';')))
+    CompilationEngine.compileDo(tokeniser) shouldBe Right(
+      List(k("do"), id("Memory"), sym('.'), id("deAlloc"), sym('('), id("square"), sym(')'), sym(';')))
   }
 
   it should "compile a do statement with multiple params" in {
@@ -49,7 +53,8 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   "compileVarDec" should "compile a varDeclaration" in {
     val tokeniser = testTokeniser("var int average ;")
-    CompilationEngine.compileVarDec(tokeniser) shouldBe Right(List(k("var"), k("int"), id("average"), sym(';')))
+    CompilationEngine.compileVarDec(tokeniser) shouldBe Right(
+      List(k("var"), k("int"), id("average"), sym(';')))
   }
 
   it should "compile a varDeclarationWithMultipleVars" in {
@@ -76,21 +81,21 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   "compileParameterList" should "compile an empty parameter list" in {
     val tokeniser = testTokeniser("( )")
     CompilationEngine.compileParameterList(tokeniser) shouldBe Right(
-      List(sym('('), sym(')'))
+      wrapBracket(List())
     )
   }
 
   it should "compile a single parameter" in {
     val tokeniser = testTokeniser("( int myVar )")
     CompilationEngine.compileParameterList(tokeniser) shouldBe Right(
-      List(sym('('), k("int"), id("myVar"), sym(')'))
+      wrapBracket(List(k("int"), id("myVar")))
     )
   }
 
   it should "compile multiple parameters" in {
     val tokeniser = testTokeniser("( int myVar , MyClass instanceOfMyClass )")
     CompilationEngine.compileParameterList(tokeniser) shouldBe Right(
-      List(sym('('), k("int"), id("myVar"), sym(','), id("MyClass"), id("instanceOfMyClass"), sym(')'))
+      wrapBracket(List(k("int"), id("myVar"), sym(','), id("MyClass"), id("instanceOfMyClass")))
     )
   }
 
@@ -101,28 +106,32 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   object CompileSubroutineBodyHelper {
     val singleVarDec = "var MyClass blah ;"
-    val singleVarDecTokens = List(k("var"), id("MyClass"), id("blah"), sym(';'));
+    val singleVarDecTokens: List[LexicalElement] = 
+      List(k("var"), id("MyClass"), id("blah"), sym(';'));
 
     val multipleVarDecs = "var int count , sum ; var char myChar ;"
-    val multipleVarDecsTokens = List(k("var"), k("int"), id("count"), sym(','), id("sum"), sym(';'), k("var"), k("char"), id("myChar"), sym(';'))
+    val multipleVarDecsTokens: List[LexicalElement] = 
+      List(k("var"), k("int"), id("count"), sym(','), id("sum"), sym(';'), k("var"), k("char"), id("myChar"), sym(';'))
 
     val multipleLetStatements = "let count = 5 ; let sum = 10 ;"
-    val multipleLetTokens = List(k("let"), id("count"), sym('='), int(5), sym(';'), k("let"), id("sum"), sym('='), int(10), sym(';'))
+    val multipleLetTokens: List[LexicalElement] = 
+      List(k("let"), id("count"), sym('='), int(5), sym(';'), k("let"), id("sum"), sym('='), int(10), sym(';'))
 
     val doStatement = "do Output . print ( myChar ) ;"
-    val doTokens = List(k("do"), id("Output"), sym('.'), id("print"), sym('('), id("myChar"), sym(')'), sym(';'))
+    val doTokens: List[LexicalElement] = 
+      List(k("do"), id("Output"), sym('.'), id("print"), sym('('), id("myChar"), sym(')'), sym(';'))
 
     val returnStatement = "return ;"
-    val returnTokens = List(k("return"), sym(';'))
+    val returnTokens: List[LexicalElement] = List(k("return"), sym(';'))
   }
 
   "compileSubroutineBody" should "compile a valid subroutine body" in {
     import CompileSubroutineBodyHelper.*
 
-    val input = List("{", multipleVarDecs, multipleLetStatements, doStatement, returnStatement, "}").mkString(" ")
+    val input = wrapCurly(List(multipleVarDecs, multipleLetStatements, doStatement, returnStatement).mkString(" "))
     val tokeniser = testTokeniser(input)
 
-    val expectedTokens = (sym('{') +: multipleVarDecsTokens) ++ multipleLetTokens ++ doTokens ++ returnTokens ++ List(sym('}'))
+    val expectedTokens = wrapCurly(multipleVarDecsTokens ++ multipleLetTokens ++ doTokens ++ returnTokens)
     CompilationEngine.compileSubroutineBody(tokeniser) shouldBe Right(expectedTokens)
   }
 
@@ -173,6 +182,8 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   private def wrapCurly(s: String) = if (s.nonEmpty) "{ " + s + " }" else "{ }"
 
   private def wrapCurly(l: List[LexicalElement]) = (sym('{') +: l) :+ sym('}')
+  private def wrapBracket(s: String) =  if (s.nonEmpty) "( " + s + " )" else "( )"
+  private def wrapBracket(l: List[LexicalElement]) = (sym('(') +: l) :+ sym(')')
 
   "compile expression" should "compile a valid expression" in {
     def variable(s: String) = VarName(s)
