@@ -79,6 +79,35 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     CompilationEngine.compileVarDec(tokeniser, true) shouldBe Left(expectedErrorMessage)
   }
 
+  object CompileIfHelper {
+    val ifTerm: String = "a < ( 100 - 10 )"
+    val expectedIfTerm: List[LexicalElem] = wrapBracket(List(id("a"), sym('<')) ++ wrapBracket(int(100), sym('-'), int(10)))
+
+    val letStatement = "let b = \"hi\" ;"
+    val expectedLetStatement: List[LexicalElem] = List(k("let"), id("b"), sym('='), str("hi"), sym(';'))
+
+    val doStatement = "do Output . print ( b ) ;"
+    val expectedDoStatement = List(k("do"), id("Output"), sym('.'), id("print")) ++ wrapBracket(id("b")) :+ sym(';')
+  }
+
+  "compileIf" should "compile a valid if" in {
+    import CompileIfHelper.*
+
+    val data = Table(
+      ("statements", "expectedStatements"),
+      (letStatement, wrapCurly(expectedLetStatement)),
+      (doStatement, wrapCurly(expectedDoStatement)),
+      (letStatement + " " + doStatement, wrapCurly(expectedLetStatement ++ expectedDoStatement))
+    )
+
+    forAll(data){ case (statements, expectedStatements) =>
+      val tokeniser = testTokeniser(s"if ( $ifTerm ) { $statements }")
+      val expected = (k("if") +: expectedIfTerm) ++ expectedStatements
+
+      CompilationEngine.compileIf(tokeniser) shouldBe Right(expected)
+    }
+  }
+
   "compile return" should "compile an empty return statement" in {
     val tokeniser = testTokeniser("return ;")
     CompilationEngine.compileReturn(tokeniser) shouldBe Right(
@@ -306,8 +335,10 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   private def wrapCurly(s: String) = if (s.nonEmpty) "{ " + s + " }" else "{ }"
   private def wrapCurly(l: List[LexicalElem]) = (sym('{') +: l) :+ sym('}')
+  private def wrapCurly(elems: LexicalElem*): List[LexicalElem] = (sym('{') +: elems.toList) :+ sym('}')
   private def wrapBracket(s: String) =  if (s.nonEmpty) "( " + s + " )" else "( )"
   private def wrapBracket(l: List[LexicalElem]) = (sym('(') +: l) :+ sym(')')
+  private def wrapBracket(elems: LexicalElem*): List[LexicalElem] = (sym('(') +: elems.toList) :+ sym(')')
 
   "compile expression" should "compile a valid expression" in {
     val data = Table(
