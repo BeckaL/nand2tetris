@@ -119,9 +119,15 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     )
   }
 
+  it should "compile a return with an expression" in {
+    val tokeniser = testTokeniser("return ( a - b ) * 5 ; ")
+    val expected = k("return") +: (wrapBracket(id("a"), sym('-'), id("b")) ++ List(sym('*'), int(5), sym(';')))
+    CompilationEngine.compileReturn(tokeniser) shouldBe Right(expected)
+  }
+
   it should "return an error for an invalid return" in {
     val tokeniser = testTokeniser("return + ;")
-    CompilationEngine.compileReturn(tokeniser) shouldBe Left("uh-oh, expected + to equal ;")
+    CompilationEngine.compileReturn(tokeniser) shouldBe Left("Uh oh couldn't create expression from +")
   }
 
   "compileParameterList" should "compile an empty parameter list" in {
@@ -342,7 +348,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     val expectedDo = List(k("do"), id("Output"), sym('.'), id("printInt")) ++ (wrapBracket(id("x")) :+ sym(';'))
 
     val expected = (k("while") +: wrapBracket(id("x"), sym('<'), int(10))) ++ wrapCurly(expectedDo)
-    
+
     CompilationEngine.compileWhile(testTokeniser(input)) shouldBe Right(expected)
   }
 

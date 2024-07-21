@@ -52,10 +52,10 @@ object CompilationEngine {
 
   def compileReturn(t: Tokeniser): MaybeLexicalElements =
     for {
-      _ <- assertTokenEqualsAndAdvance(t, "return")
-      //TODO handle non empty returns
-      _ <- assertTokenEqualsAndAdvance(t, ";")
-    } yield List(Keyword("return"), Symbol(';'))
+      _                     <- assertTokenEqualsAndAdvance(t, "return")
+      maybeReturnExpression <- if (t.currentToken == ";") Right(List()) else compileExpression(t)
+      _                     <- assertTokenEqualsAndAdvance(t, ";")
+    } yield Keyword("return") +: maybeReturnExpression :+ Symbol(';')
 
   def compileStatement(t: Tokeniser): MaybeLexicalElements =
     t.currentToken match
@@ -118,7 +118,7 @@ object CompilationEngine {
           unaryOp <- getLexElementAsAndAdvance[Symbol](t, LexicalElem.operatorFrom(_, TokenTypes.UNARY_OPERATORS))
           term <- compileTerm(t)
         } yield unaryOp +: term
-      case _ => ???
+      case _ => Left(s"Uh oh couldn't create expression from ${s}")
 
     lexElemOrError match
       case s: String => Left(s)
