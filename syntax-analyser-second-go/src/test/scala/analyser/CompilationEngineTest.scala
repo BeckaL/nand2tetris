@@ -299,9 +299,8 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
       ("class", "Cannot create keyword const from keyword class")
     )
 
-    forAll(data) { case (invalidTerm, expectedError) => {
+    forAll(data) { case (invalidTerm, expectedError) =>
       CompilationEngine.compileTerm(testTokeniser(invalidTerm)) shouldBe Left(expectedError)
-    }
     }
   }
 
@@ -311,23 +310,14 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   private def wrapBracket(l: List[LexicalElement]) = (sym('(') +: l) :+ sym(')')
 
   "compile expression" should "compile a valid expression" in {
-    def variable(s: String) = VarName(s)
-
-    def exp(t: Term, o: Option[(Operator, Term)]) = Expression(t, o)
-
-    def int(i: Integer) = IntegerConstant(i)
-
-    def string(s: String) = StringConstant(s)
-
-    def op(s: String) = Operator(s)
-
     val data = Table(
       ("expression", "expected"),
-      (List("a"), exp(variable("a"), None)),
-      (List("\"b\""), exp(string("b"), None)),
-      (List("100"), exp(int(100), None)),
-      (List("a", "*", "100"), exp(variable("a"), Some((op("*"), int(100))))),
-      //      (List("(", "a", "+", "100", ")", "*", "10"), exp())
+      ("a", List(id("a"))),
+      ("\"b\"", List(str("b"))),
+      ("100", List(int(100))),
+      ("a * 100", List(id("a"), sym('*'), int(100))),
+      ("( a + 100 ) * 10", wrapBracket(List(id("a"), sym('+'), int(100))) ++ List(sym('*'), int(10))),
+      ("( ~ 10 * 100 ) / 1000", wrapBracket(List(sym('~'), int(10), sym('*'), int(100))) ++ List(sym('/'), int(1000)))
     )
 
     forAll(data) { case (expression, expected) =>

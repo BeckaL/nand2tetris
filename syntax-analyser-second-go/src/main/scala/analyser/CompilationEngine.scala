@@ -12,11 +12,10 @@ object CompilationEngine {
       _ <- assertTokenEqualsAndAdvance(tokeniser, "let")
       variable <- getLexElementAsAndAdvance[LexicalIdentifier](tokeniser, LexicalElement.identifierFrom)
       _ <- assertTokenEqualsAndAdvance(tokeniser, "=")
-      expression <- getTokenAsAndAdvance[Term](tokeniser, Term.from)
+      expression <- compileExpression(tokeniser)
       _ <- assertTokenEqualsAndAdvance(tokeniser, ";")
     } yield List(
-      Keyword("let"), variable, LexicalSymbol('='), expression.toLexElem, LexicalSymbol(';')
-    )
+      Keyword("let"), variable, LexicalSymbol('=')) ++ expression :+ LexicalSymbol(';')
   }
   
    def compileDo(t: Tokeniser): MaybeLexicalElements = {
@@ -107,11 +106,23 @@ object CompilationEngine {
        case TokenTypes.Identifier => LexicalIdentifier(s)
        case TokenTypes.Keyword if TokenTypes.KEYWORD_CONSTANTS.contains(s) => Keyword(s)
        case TokenTypes.Keyword => s"Cannot create keyword const from keyword $s"
+       case TokenTypes.Symbol if s == "(" => 
+         t.advance()
+         for {
+           e <- compileExpression(t)
+           _ <- assertTokenEqualsAndAdvance(t, ")")
+         } yield wrapBrackets(e)
+       case TokenTypes.Symbol if TokenTypes.UNARY_OPERATORS.contains(s) =>
+         for {
+           unaryOp <- getLexElementAsAndAdvance[LexicalSymbol](t, LexicalElement.operatorFrom(_, TokenTypes.UNARY_OPERATORS))
+           term <- compileTerm(t)
+         } yield unaryOp +: term
        case _ => ???
      }
      lexElemOrError match {
        case s: String => Left(s)
-       case l: LexicalElement => Right(List(l)).tap(_ => t.advance())
+       case elem: LexicalElement => Right(List(elem)).tap(_ => t.advance())
+       case maybeList: MaybeLexicalElements => maybeList
      }
    }
    
@@ -159,27 +170,25 @@ object CompilationEngine {
      for {
        _ <- assertTokenEqualsAndAdvance(t, "if")
        _ <- assertTokenEqualsAndAdvance(t, "(")
-       variable <- getLexElementAsAndAdvance[LexicalIdentifier](t, LexicalElement.identifierFrom)
-       operator <- getTokenAsAndAdvance[Operator](t, Operator.from)
-       evaluatedTo <- getTokenAsAndAdvance[Term](t, Term.from)
+       expression <- compileExpression(t)
        _ <- assertTokenEqualsAndAdvance(t, ")")
        _ <- assertTokenEqualsAndAdvance(t, "{")
        letElems <- compileLet(t)
        _ <- assertTokenEqualsAndAdvance(t, "}")
-     } yield (Keyword("let") +: wrapBrackets(List(variable, operator.toLexElem, evaluatedTo.toLexElem))) ++ wrapCurlyBrackets(letElems)
+     } yield (Keyword("let") +: wrapBrackets(expression)) ++ wrapCurlyBrackets(letElems)
    }
 
-  def compileExpression(t: Tokeniser): Either[String, Expression] =
+  def compileExpression(t: Tokeniser): Either[String, List[LexicalElement]] =
     for {
-      term <- getTokenAsAndAdvance[Term](t, Term.from)
+      term <- compileTerm(t)
       opTerm <- if (t.hasMoreTokens && Operator.isOperator(t.currentToken)) {
                   for {
-                    operator <- getTokenAsAndAdvance[Operator](t, Operator.from)
-                    nextTerm <- getTokenAsAndAdvance[Term](t, Term.from)
-                  } yield Some(operator, nextTerm)
+                    operator <- getLexElementAsAndAdvance[LexicalSymbol](t, LexicalElement.operatorFrom(_, TokenTypes.OPERATORS))
+                    nextTerm <- compileTerm(t)
+                  } yield operator +: nextTerm
                 } else
-                    Right(None)
-      } yield Expression(term, opTerm)
+                    Right(List())
+      } yield term ++ opTerm
 
   private def getOptionalListOfVarsFollowedByClosingChar(t: Tokeniser, varListSoFar: List[LexicalElement] = List()): MaybeLexicalElements =
     t.currentToken match
@@ -215,10 +224,10 @@ object CompilationEngine {
 
   private def getVarList(t: Tokeniser, soFar: List[LexicalElement] = List()): MaybeLexicalElements =
     for {
-      lexElem <- getTokenAsAndAdvance[Term](t, Term.from).map(_.toLexElem)
+      lexElem <- compileExpression(t)
       nextToken <- assertNextTokenEqualsOneOf(t, Set(")", ","))
       continue = nextToken == ","
-      newVarList = soFar :+ lexElem
+      newVarList = soFar ++ lexElem
       r <- if (continue)
           getVarList(t, newVarList :+ LexicalSymbol(','))
         else
@@ -229,9 +238,6 @@ object CompilationEngine {
     t.currentToken match
       case s if equals.contains(s) => Right(s).tap(_ => t.advance())
       case otherString => Left(s"uh-oh, expected $otherString to equal ${equals.toList.mkString(" or ")}")
-
-  private def getTokenAsAndAdvance[T <: Token](t: Tokeniser, transformer: String => Either[String, T]): Either[String, T] =
-    transformer(t.currentToken).tap(_ => t.advance())
 
   private def getLexElementAsAndAdvance[T <: LexicalElement](t: Tokeniser, transformer: String => Either[String, T]): Either[String, T] =
     transformer(t.currentToken).tap(_ => t.advance())

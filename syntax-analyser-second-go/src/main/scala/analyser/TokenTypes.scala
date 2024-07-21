@@ -9,7 +9,8 @@ object TokenTypes extends Enumeration {
   val SUBROUTINE_TYPES: Set[String] = Set("constructor", "function", "method")
   val CLASS_VAR_TYPES: Set[String] = Set("static", "field")
   val KEYWORD_CONSTANTS: Set[String] = Set("true", "false", "null", "this")
-  val UNARY_OPERATORS = Set("-", "~")
+  val UNARY_OPERATORS: Set[String] = Set("-", "~")
+  val OPERATORS: Set[String] = Set("+", "-", "*", "/", "&", "|", "<", ">", "=")
 
   def tokenType(currentToken: String): TokenType =
     if (keywordsRegex.matches(currentToken))
