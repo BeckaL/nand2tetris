@@ -150,7 +150,7 @@ object CompilationEngine {
       case ")" => Right(soFar).tap(_ => t.advance())
       case _ => getVarParamList(t, List())
 
-  def compileIf(t: Tokeniser): MaybeLexicalElements = //TODO add else
+  def compileIf(t: Tokeniser): MaybeLexicalElements =
     for {
       _ <- assertTokenEqualsAndAdvance(t, "if")
       _ <- assertTokenEqualsAndAdvance(t, "(")
@@ -159,7 +159,17 @@ object CompilationEngine {
       _ <- assertTokenEqualsAndAdvance(t, "{")
       statements <- compileOptionalStatements(t)
       _ <- assertTokenEqualsAndAdvance(t, "}")
-    } yield (Keyword("if") +: wrapBrackets(expression)) ++ wrapCurlyBrackets(statements)
+      maybeElse <- if (t.hasMoreTokens && t.currentToken == "else") {
+        for {
+          _ <- assertTokenEqualsAndAdvance(t, "else")
+          _ <- assertTokenEqualsAndAdvance(t, "{")
+          statements <- compileOptionalStatements(t)
+          _ <- assertTokenEqualsAndAdvance(t, "}")
+        } yield Keyword("else") +: wrapCurlyBrackets(statements)
+      } else {
+      Right(List())
+    }
+    } yield (Keyword("if") +: wrapBrackets(expression)) ++ wrapCurlyBrackets(statements) ++ maybeElse
 
   def compileExpression(t: Tokeniser): Either[String, List[LexicalElem]] =
     for {

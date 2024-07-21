@@ -88,23 +88,27 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
     val doStatement = "do Output . print ( b ) ;"
     val expectedDoStatement = List(k("do"), id("Output"), sym('.'), id("print")) ++ wrapBracket(id("b")) :+ sym(';')
+
+    val elseStatement = "else { " + doStatement + " }"
+    val expectedElseStatement = k("else") +: wrapCurly(expectedDoStatement)
   }
 
   "compileIf" should "compile a valid if" in {
     import CompileIfHelper.*
 
     val data = Table(
-      ("statements", "expectedStatements"),
-      (letStatement, wrapCurly(expectedLetStatement)),
-      (doStatement, wrapCurly(expectedDoStatement)),
-      (letStatement + " " + doStatement, wrapCurly(expectedLetStatement ++ expectedDoStatement))
+      ("statements", "elseStatement", "expectedStatements"),
+      (letStatement, None, wrapCurly(expectedLetStatement)),
+      (doStatement, None, wrapCurly(expectedDoStatement)),
+      (letStatement + " " + doStatement, None, wrapCurly(expectedLetStatement ++ expectedDoStatement)),
+      (letStatement, Some(elseStatement), wrapCurly(expectedLetStatement) ++ expectedElseStatement)
     )
 
-    forAll(data){ case (statements, expectedStatements) =>
-      val tokeniser = testTokeniser(s"if ( $ifTerm ) { $statements }")
+    forAll(data){ case (statements, maybeElseStatement, expectedStatements) =>
+      val input = s"if ( $ifTerm ) { $statements }" ++ maybeElseStatement.map(" " + _).getOrElse("")
       val expected = (k("if") +: expectedIfTerm) ++ expectedStatements
 
-      CompilationEngine.compileIf(tokeniser) shouldBe Right(expected)
+      CompilationEngine.compileIf(testTokeniser(input)) shouldBe Right(expected)
     }
   }
 
