@@ -2,7 +2,7 @@ package analyser
 
 object InputUtils {
   def stripInput(input: List[String]): List[String] =
-    removeComments(input.mkString("\n") ++ "\n").split("\n").toList.filter(line => line.trim != "")
+    removeComments(input.mkString("\n") ++ "\n").split("\n").toList.filter(line => line.trim != "").map(l => l.replaceAll("\t", ""))
 
   private def removeComments(input: String, count: Int = 0): String =
     val indexOfFirstMultiLineComment = input.indexOf("/*")

@@ -12,7 +12,7 @@ class SyntaxAnalyserIntegrationTest extends AnyFlatSpec with Matchers with Befor
   def beforeEach(): Unit = {
     Files.deleteIfExists(Paths.get("./src/test/resources/1/DoAndLetProg.xml"))
     Files.deleteIfExists(Paths.get("./src/test/resources/2/SimpleProg.xml"))
-    Files.deleteIfExists(Paths.get("./src/test/resources/3/ExpectedReducedMain.xml"))
+    Files.deleteIfExists(Paths.get("./src/test/resources/3/ReducedMain.xml"))
   }
 
   "main" should "produce the expected output file for a simple set of statements" in {
@@ -34,7 +34,6 @@ class SyntaxAnalyserIntegrationTest extends AnyFlatSpec with Matchers with Befor
   }
 
   it should "produce the expected output file for a class" in {
-    pending //TODO
     Main.main(Array("./src/test/resources/3/ReducedMain.jack"))
 
     val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/3/ExpectedReducedMain.xml")
@@ -44,6 +43,6 @@ class SyntaxAnalyserIntegrationTest extends AnyFlatSpec with Matchers with Befor
   }
 
   private def readLinesWithoutWhitespace(input: String): List[String] =
-    readFile(input).map(_.replaceAll(" ", ""))
+    readFile(input).map(_.replaceAll(" ", "").replaceAll("\t", ""))
 
 }
