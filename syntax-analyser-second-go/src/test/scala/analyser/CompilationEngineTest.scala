@@ -337,12 +337,15 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     }
   }
 
-  private def wrapCurly(s: String) = if (s.nonEmpty) "{ " + s + " }" else "{ }"
-  private def wrapCurly(l: List[LexicalElem]) = (sym('{') +: l) :+ sym('}')
-  private def wrapCurly(elems: LexicalElem*): List[LexicalElem] = (sym('{') +: elems.toList) :+ sym('}')
-  private def wrapBracket(s: String) =  if (s.nonEmpty) "( " + s + " )" else "( )"
-  private def wrapBracket(l: List[LexicalElem]) = (sym('(') +: l) :+ sym(')')
-  private def wrapBracket(elems: LexicalElem*): List[LexicalElem] = (sym('(') +: elems.toList) :+ sym(')')
+  "compile while" should "compile a valid while statement" in {
+    val input = "while ( x < 10 ) { do Output . printInt ( x ) ; }"
+    val expectedDo = List(k("do"), id("Output"), sym('.'), id("printInt")) ++ (wrapBracket(id("x")) :+ sym(';'))
+
+    val expected = (k("while") +: wrapBracket(id("x"), sym('<'), int(10))) ++ wrapCurly(expectedDo)
+    
+    CompilationEngine.compileWhile(testTokeniser(input)) shouldBe Right(expected)
+  }
+
 
   "compile expression" should "compile a valid expression" in {
     val data = Table(
@@ -359,6 +362,13 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
       CompilationEngine.compileExpression(testTokeniser(expression)) shouldBe Right(expected)
     }
   }
+
+  private def wrapCurly(s: String) = if (s.nonEmpty) "{ " + s + " }" else "{ }"
+  private def wrapCurly(l: List[LexicalElem]) = (sym('{') +: l) :+ sym('}')
+  private def wrapCurly(elems: LexicalElem*): List[LexicalElem] = (sym('{') +: elems.toList) :+ sym('}')
+  private def wrapBracket(s: String) = if (s.nonEmpty) "( " + s + " )" else "( )"
+  private def wrapBracket(l: List[LexicalElem]) = (sym('(') +: l) :+ sym(')')
+  private def wrapBracket(elems: LexicalElem*): List[LexicalElem] = (sym('(') +: elems.toList) :+ sym(')')
 
   class FakeTokeniser(var tokens: List[String]) extends Tokeniser {
     override def advance(): Unit = tokens = tokens.tail

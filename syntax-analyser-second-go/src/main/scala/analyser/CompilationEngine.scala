@@ -28,6 +28,17 @@ object CompilationEngine {
       _ <- assertTokenEqualsAndAdvance(t, ";")
     } yield List(Keyword("do"), variable, Symbol('.'), method) ++ wrapBrackets(list) :+ Symbol(';')
 
+  def compileWhile(t: Tokeniser): MaybeLexicalElements =
+    for {
+      _ <- assertTokenEqualsAndAdvance(t, "while")
+      _ <- assertTokenEqualsAndAdvance(t, "(")
+      exp <- compileExpression(t)
+      _ <- assertTokenEqualsAndAdvance(t, ")")
+      _ <- assertTokenEqualsAndAdvance(t, "{")
+      statements <- compileOptionalStatements(t)
+      _ <- assertTokenEqualsAndAdvance(t, "}")
+    } yield Keyword("while") +: (wrapBrackets(exp) ++ wrapCurlyBrackets(statements))
+
   private def wrapBrackets(l: List[LexicalElem]): List[LexicalElem] = (Symbol('(') +: l) :+ Symbol(')')
 
   private def wrapCurlyBrackets(l: List[LexicalElem]): List[LexicalElem] = (Symbol('{') +: l) :+ Symbol('}')
@@ -46,13 +57,13 @@ object CompilationEngine {
       _ <- assertTokenEqualsAndAdvance(t, ";")
     } yield List(Keyword("return"), Symbol(';'))
 
-  //TODO make compileStatements
   def compileStatement(t: Tokeniser): MaybeLexicalElements =
     t.currentToken match
       case "let" => compileLet(t)
       case "do" => compileDo(t)
       case "if" => compileIf(t)
       case "return" => compileReturn(t)
+      case "while" => compileWhile(t)
       case otherToken => Left(s"uh oh $otherToken")
 
   def compileParameterList(t: Tokeniser): MaybeLexicalElements =
