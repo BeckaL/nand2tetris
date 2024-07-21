@@ -9,7 +9,7 @@
     <symbol> ) </symbol>
     <symbol> { </symbol>
     <keyword> var </keyword>
-    <identifier> int </identifier>
+    <keyword> int </keyword>
     <identifier> average </identifier>
     <symbol> ; </symbol>
     <keyword> let </keyword>
