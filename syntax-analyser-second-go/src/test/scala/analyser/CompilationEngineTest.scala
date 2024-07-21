@@ -8,13 +8,13 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   private def k(s: String) = Keyword(s)
 
-  private def sym(c: Char) = LexicalSymbol(c)
+  private def sym(c: Char) = Symbol(c)
 
-  private def id(s: String) = LexicalIdentifier(s)
+  private def id(s: String) = Identifier(s)
 
-  private def int(n: Int) = LexicalIntegerConstant(n)
+  private def int(n: Int) = IntConst(n)
 
-  private def str(s: String) = LexicalStringConstant(s)
+  private def str(s: String) = StringConst(s)
 
   "compileLet" should "compile a valid let statement" in {
     val tokeniser = testTokeniser("let count = count ;")
@@ -117,23 +117,23 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   object CompileSubroutineBodyHelper {
     val singleVarDec = "var MyClass blah ;"
-    val singleVarDecTokens: List[LexicalElement] =
+    val singleVarDecTokens: List[LexicalElem] =
       List(k("var"), id("MyClass"), id("blah"), sym(';'));
 
     val multipleVarDecs = "var int count , sum ; var char myChar ;"
-    val multipleVarDecsTokens: List[LexicalElement] =
+    val multipleVarDecsTokens: List[LexicalElem] =
       List(k("var"), k("int"), id("count"), sym(','), id("sum"), sym(';'), k("var"), k("char"), id("myChar"), sym(';'))
 
     val multipleLetStatements = "let count = 5 ; let sum = 10 ;"
-    val multipleLetTokens: List[LexicalElement] =
+    val multipleLetTokens: List[LexicalElem] =
       List(k("let"), id("count"), sym('='), int(5), sym(';'), k("let"), id("sum"), sym('='), int(10), sym(';'))
 
     val doStatement = "do Output . print ( myChar ) ;"
-    val doTokens: List[LexicalElement] =
+    val doTokens: List[LexicalElem] =
       List(k("do"), id("Output"), sym('.'), id("print"), sym('('), id("myChar"), sym(')'), sym(';'))
 
     val returnStatement = "return ;"
-    val returnTokens: List[LexicalElement] = List(k("return"), sym(';'))
+    val returnTokens: List[LexicalElem] = List(k("return"), sym(';'))
   }
 
   "compileSubroutineBody" should "compile a valid subroutine body" in {
@@ -149,7 +149,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   it should "compile a subroutine body with an arbitrary number of var decs" in {
     import CompileSubroutineBodyHelper.*
 
-    val table = Table[Option[List[String]], List[LexicalElement]](
+    val table = Table[Option[List[String]], List[LexicalElem]](
       ("varDecs", "expectedStatementSymbols"),
       (Some(List(multipleVarDecs)), multipleVarDecsTokens),
       (Some(List(singleVarDec)), singleVarDecTokens),
@@ -171,7 +171,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   it should "compile a subroutine body with an arbitrary number of statements" in {
     import CompileSubroutineBodyHelper.*
 
-    val table = Table[Option[List[String]], List[LexicalElement]](
+    val table = Table[Option[List[String]], List[LexicalElem]](
       ("statements", "expectedStatementSymbols"),
       (Some(List(returnStatement)), returnTokens),
       (Some(List(multipleLetStatements, doStatement, returnStatement)), multipleLetTokens ++ doTokens ++ returnTokens),
@@ -194,20 +194,20 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     import CompileSubroutineBodyHelper.*
 
     val methodDeclaration = "method int myMethod ( )"
-    val methodDeclarationTokens: List[LexicalElement] = List(k("method"), k("int"), id("myMethod"), sym('('), sym(')'))
+    val methodDeclarationTokens: List[LexicalElem] = List(k("method"), k("int"), id("myMethod"), sym('('), sym(')'))
 
     val functionDeclaration = "function void myFunction ( boolean a )"
-    val functionDeclarationTokens: List[LexicalElement] = List(k("function"), k("void"), id("myFunction")) ++ wrapBracket(List(k("boolean"), id("a")))
+    val functionDeclarationTokens: List[LexicalElem] = List(k("function"), k("void"), id("myFunction")) ++ wrapBracket(List(k("boolean"), id("a")))
 
     val constructorDeclaration = "constructor MyClass constructMyClass ( char a )"
-    val constructorDeclarationTokens: List[LexicalElement] =
+    val constructorDeclarationTokens: List[LexicalElem] =
       List(k("constructor"), id("MyClass"), id("constructMyClass")) ++
         wrapBracket(List(k("char"), id("a")))
 
     val methodDeclarationWithInvalidReturnType = "method class myMethod ( )"
 
     val returnBody = wrapCurly(returnStatement)
-    val returnBodyTokens: List[LexicalElement] = wrapCurly(returnTokens)
+    val returnBodyTokens: List[LexicalElem] = wrapCurly(returnTokens)
   }
 
   "compileSubroutine" should "compile a valid subroutine" in {
@@ -305,9 +305,9 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   }
 
   private def wrapCurly(s: String) = if (s.nonEmpty) "{ " + s + " }" else "{ }"
-  private def wrapCurly(l: List[LexicalElement]) = (sym('{') +: l) :+ sym('}')
+  private def wrapCurly(l: List[LexicalElem]) = (sym('{') +: l) :+ sym('}')
   private def wrapBracket(s: String) =  if (s.nonEmpty) "( " + s + " )" else "( )"
-  private def wrapBracket(l: List[LexicalElement]) = (sym('(') +: l) :+ sym(')')
+  private def wrapBracket(l: List[LexicalElem]) = (sym('(') +: l) :+ sym(')')
 
   "compile expression" should "compile a valid expression" in {
     val data = Table(

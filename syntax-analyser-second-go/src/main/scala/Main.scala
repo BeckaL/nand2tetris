@@ -1,5 +1,5 @@
 import analyser.CompilationEngine.{compileClass, compileDo, compileIf, compileLet, compileStatement}
-import analyser.{DefaultTokeniser, InputUtils, LexicalElement, Tokeniser}
+import analyser.{DefaultTokeniser, InputUtils, LexicalElem, Tokeniser}
 import inputoutput.FileOps.*
 
 import scala.annotation.tailrec
@@ -17,7 +17,7 @@ object Main {
   }
 
   @tailrec
-  private def compile(tokeniser: Tokeniser, statements: List[LexicalElement]): List[LexicalElement] = {
+  private def compile(tokeniser: Tokeniser, statements: List[LexicalElem]): List[LexicalElem] = {
     if (tokeniser.currentToken == "class") {
       compileClass(tokeniser) match {
         case Right(t) => t
