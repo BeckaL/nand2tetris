@@ -44,16 +44,24 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     }
   }
 
-  //TODO: invalid let cases
-  //invalid compile lets
-  //"let count ;"
-  //"let 5 = 10 ;"
-  //"let foo = bar"
-  //"let foo * bar ; "
-  //"let ",
-  //"let ;"
-  //"let foo = ";
-  //"let foo = ;"
+  it should "return a left for an invalid let statement" in {
+    val invalidLets = Table(
+      "invalid statement",
+      "let count ;",
+      "let 5 = 10 ;",
+      "let foo = bar",
+      "let foo * bar ; ",
+      "let",
+      "let ;",
+      "let foo = ;",
+      "let foo = ;"
+    )
+
+    forAll(invalidLets) { invalidStatement =>
+      val tokeniser = testTokeniser(invalidStatement ++ " rest of programme")
+      CompilationEngine.compileLet(tokeniser).isLeft shouldBe true
+    }
+  }
 
   object DoStatements {
     val doFooDotBarString = "do foo . bar ( ) ;"
