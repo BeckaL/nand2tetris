@@ -6,6 +6,7 @@ import scala.annotation.tailrec
 import scala.util.chaining.scalaUtilChainingOps
 
 type MaybeLexicalElements = Either[String, List[LexicalElem]]
+
 sealed trait CompilationRule {
   def compile(t: Tokeniser): MaybeLexicalElements
 }
@@ -134,7 +135,9 @@ def compileWithRules(t: Tokeniser, rules: List[CompilationRule], enclosingElem: 
           case Left(err) => Left(err)
           case Right(newElems) => go(soFar ++ newElems, otherRules)
 
-  go(List(), rules)
-  
-private def encloseWithTags(tagname: String, elems: List[LexicalElem]) = 
+  val r = go(List(), rules)
+  println(s"finished parsing elem with rules starting ${rules.head} got ${r}")
+  r
+
+private def encloseWithTags(tagname: String, elems: List[LexicalElem]) =
   StartElem(tagname) +: elems :+ EndElem(tagname)

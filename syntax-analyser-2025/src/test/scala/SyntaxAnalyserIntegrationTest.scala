@@ -12,13 +12,16 @@ class SyntaxAnalyserIntegrationTest extends AnyFlatSpec with Matchers with Befor
     Files.deleteIfExists(Paths.get("./src/test/resources/1/Square.xml"))
     Files.deleteIfExists(Paths.get("./src/test/resources/1/Main.xml"))
     Files.deleteIfExists(Paths.get("./src/test/resources/1/SquareGame.xml"))
+    Files.deleteIfExists(Paths.get("./src/test/resources/2/Square.xml"))
+    Files.deleteIfExists(Paths.get("./src/test/resources/2/Main.xml"))
+    Files.deleteIfExists(Paths.get("./src/test/resources/2/SquareGame.xml"))
   }
 
   "main" should "produce the expected output" in {
     Main.main(Array("./src/test/resources/1/Square.jack"))
 
     val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/1/ExpectedSquare.xml")
-    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/1/ExpectedSquare.xml")
+    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/1/Square.xml")
 
     actualOutput shouldBe expectedOutput
   }
@@ -27,7 +30,7 @@ class SyntaxAnalyserIntegrationTest extends AnyFlatSpec with Matchers with Befor
     Main.main(Array("./src/test/resources/1/Main.jack"))
 
     val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/1/ExpectedMain.xml")
-    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/1/ExpectedMain.xml")
+    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/1/Main.xml")
 
     actualOutput shouldBe expectedOutput
   }
@@ -37,6 +40,33 @@ class SyntaxAnalyserIntegrationTest extends AnyFlatSpec with Matchers with Befor
 
     val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/1/ExpectedSquareGame.xml")
     val actualOutput = readLinesWithoutWhitespace("./src/test/resources/1/SquareGame.xml")
+
+    actualOutput shouldBe expectedOutput
+  }
+
+  it should "compile a programme with expressions" in {
+    Main.main(Array("./src/test/resources/2/SquareGame.jack"))
+
+    val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/2/ExpectedSquareGame.xml")
+    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/2/SquareGame.xml")
+
+    actualOutput shouldBe expectedOutput
+  }
+
+  it should "compile a programme with expressions part 2" in {
+    Main.main(Array("./src/test/resources/2/Square.jack"))
+
+    val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/2/ExpectedSquare.xml")
+    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/2/Square.xml")
+
+    actualOutput shouldBe expectedOutput
+  }
+
+  it should "compile a programme with expressions part 3" in {
+    Main.main(Array("./src/test/resources/2/Main.jack"))
+
+    val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/2/ExpectedMain.xml")
+    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/2/Main.xml")
 
     actualOutput shouldBe expectedOutput
   }

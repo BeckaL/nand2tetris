@@ -5,7 +5,8 @@ import scala.util.chaining.scalaUtilChainingOps
 
 object CompilationEngine {
   def compileLet(t: Tokeniser): MaybeLexicalElements =
-    val rules = List(KeywordRule("let"), VarRule, SymbolRule("="), CustomRule(parseExpressionPartial), semicolon)
+    val optionalExpressionRule = OptionalElemRule(_ == "[", ObjectRule(List(SymbolRule("["), CustomRule(compileExpression), SymbolRule("]"))).compile, false)
+    val rules = List(KeywordRule("let"), VarRule, optionalExpressionRule, SymbolRule("="), CustomRule(compileExpression), semicolon)
     compileWithRules(t, rules, Some("letStatement"))
 
   def compileClass(t: Tokeniser): MaybeLexicalElements = {
@@ -91,7 +92,7 @@ object CompilationEngine {
     val rules = List(
       KeywordRule("if"),
       openBracket,
-      CustomRule(parseExpressionPartial),
+      CustomRule(compileExpression),
       closeBracket,
       statementsEnclosedByCurlies,
       OptionalElemRule(_ == "else", (t: Tokeniser) => statementsEnclosedByCurlies.compile(t).map(Keyword("else") +: _))
@@ -101,7 +102,7 @@ object CompilationEngine {
   val statementsEnclosedByCurlies = ObjectRule(List(openCurlyBracket, CustomRule(compileStatements(_, "}")), closeCurlyBracket))
 
   def compileWhile(t: Tokeniser): MaybeLexicalElements =
-    val rules = List(KeywordRule("while"), openBracket, CustomRule(parseExpressionPartial), closeBracket, statementsEnclosedByCurlies)
+    val rules = List(KeywordRule("while"), openBracket, CustomRule(compileExpression), closeBracket, statementsEnclosedByCurlies)
     compileWithRules(t, rules, Some("whileStatement"))
 
   def compileDo(t: Tokeniser): MaybeLexicalElements = {
@@ -127,19 +128,15 @@ object CompilationEngine {
   private def parseSubroutineCallFromDot(t: Tokeniser, v: LexicalElem): MaybeLexicalElements =
     compileWithRules(t, subroutineCallRules.tail, None).map(elems => v +: elems)
 
-  //TODO: get rid
-  private def parseExpressionPartial(t: Tokeniser) = expectTerm(t).map(elems => encloseWithTags("expression", elems))
-
   def compileReturn(t: Tokeniser): MaybeLexicalElements =
-    val optionalExpressionRule = OptionalElemRule(_ != ";", parseExpressionPartial, advanceIfConditionMet = false)
+    val optionalExpressionRule = OptionalElemRule(_ != ";", CustomRule(compileExpression).compile, advanceIfConditionMet = false)
 
     val rules = List(KeywordRule("return"), optionalExpressionRule, semicolon)
     compileWithRules(t, rules, Some("returnStatement"))
 
-  //TODO part 2
   def compileExpression(t: Tokeniser): MaybeLexicalElements =
     val rules = List(
-      CustomRule(compileTerm), 
+      CustomRule(compileTerm),
       OptionalElemRule(TokenTypes.OPERATORS.contains, ObjectRule(List(SymbolMatchingOneOfRule(TokenTypes.OPERATORS.toList), CustomRule(compileTerm))).compile, false))
     compileWithRules(t, rules, Some("expression"))
 
@@ -148,8 +145,7 @@ object CompilationEngine {
       if (t.currentToken == ")") //covers case of empty list
         Right(encloseWithTags("expressionList", soFar), expressionListCount)
       else
-        //TODO sub this out for real compile expression when expressions fully implemented
-        parseExpressionPartial(t).flatMap(lexElems =>
+        compileExpression(t).flatMap(lexElems =>
           if (t.currentToken == ",") {
             t.safeAdvance.flatMap(_ => go(soFar ++ lexElems :+ Symbol(','), expressionListCount + 1))
           } else if (t.currentToken == ")") {
@@ -182,6 +178,9 @@ object CompilationEngine {
         case TokenTypes.StringConst => Right(List(stringConstFromQuotedString(s))).tap(_ => t.advance())
         case TokenTypes.Symbol if TokenTypes.UNARY_OPERATORS.contains(s) =>
           compileWithRules(t, List(SymbolMatchingOneOfRule(TokenTypes.UNARY_OPERATORS.toList), CustomRule(compileTerm)), None)
+        case TokenTypes.Symbol if s == "(" =>
+          val rules = List(SymbolRule("("), CustomRule(compileExpression), SymbolRule(")"))
+          compileWithRules(t, rules, None)
         case otherTokenType => Left(s"expected valid term to be found in string $s but got $otherTokenType")
   )
 
@@ -195,6 +194,9 @@ object CompilationEngine {
       case TokenTypes.IntConst => Right(encloseWithTags("term", List(IntConst(s.toInt)))).tap(_ => t.advance())
       case TokenTypes.Keyword if TokenTypes.KEYWORD_CONSTANTS.contains(s) => Right(encloseWithTags("term", List(Keyword(s)))).tap(_ => t.advance())
       case TokenTypes.StringConst => Right(encloseWithTags("term", List(stringConstFromQuotedString(s)))).tap(_ => t.advance())
+      case TokenTypes.Symbol if s == "(" =>
+        val rules = List(SymbolRule("("), CustomRule(compileExpression), SymbolRule(")"))
+        compileWithRules(t, rules, None)
       case otherTokenType => Left(s"expected valid term to be found in string $s but got $otherTokenType")
 
   private def expectVarAndAdvance(t: Tokeniser): MaybeLexicalElements =

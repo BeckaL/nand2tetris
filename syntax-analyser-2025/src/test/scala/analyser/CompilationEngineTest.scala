@@ -44,7 +44,8 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     ("let count = 500 ;", wrapInTag(List(k("let"), id("count"), sym('=')) ++ wrapInDoubleTag("expression", "term", int(500)) :+ sym(';'), "letStatement")),
     ("let count = true ;", wrapInTag(List(k("let"), id("count"), sym('=')) ++ wrapInDoubleTag("expression", "term", k("true")) :+ sym(';'), "letStatement")),
     ("let count = \"hi\" ;", wrapInTag(List(k("let"), id("count"), sym('=')) ++ wrapInDoubleTag("expression", "term", str("hi")) :+ sym(';'), "letStatement")),
-    ("let another_count = count ;", wrapInTag(List(k("let"), id("another_count"), sym('=')) ++ wrapInDoubleTag("expression", "term", id("count")) :+ sym(';'), "letStatement"))
+    ("let another_count = count ;", wrapInTag(List(k("let"), id("another_count"), sym('=')) ++ wrapInDoubleTag("expression", "term", id("count")) :+ sym(';'), "letStatement")),
+    ("let myArray [ 5 ] = 10 ;", List(StartElem("letStatement"), k("let"), id("myArray"), sym('[')) ++ wrapInDoubleTag("expression", "term", int(5)) ++ List(sym(']'), sym('=')) ++ wrapInDoubleTag("expression", "term", int(10)) ++ List(sym(';'), EndElem("letStatement")))
   )
 
   //TODO more complex
@@ -56,7 +57,6 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   //"let count = Foo.bar() ;"
   //"let count = Foo.bar(expressionList) ;" -expand with more examples
   //"let count = subroutineName('expressionList') ;" - expand with more examples
-  //"let myArray[5] = 10 ;"
   //"let count = another_count * 5 ;"
 
   "compileLet" should "compile a valid let statement" in {
@@ -409,6 +409,31 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     val expectedElems = wrapInTag(wrapInTag(id("foo"), "term") ++ List(sym('+')) ++ wrapInTag(int(5), "term"), "expression")
 
     val tokeniser = testTokeniser(expressionString ++ " rest of input")
+    CompilationEngine.compileExpression(tokeniser) shouldBe Right(expectedElems)
+  }
+
+  it should "compile an expression in brackets" in {
+    val string = "~ ( key = 0 )"
+    val expectedElems = List(StartElem("expression"),
+      StartElem("term"),
+      Symbol('~'),
+      StartElem("term"),
+      Symbol('('),
+      StartElem("expression"),
+      StartElem("term"),
+      id("key"),
+      EndElem("term"),
+      Symbol('='),
+      StartElem("term"),
+      int(0),
+      EndElem("term"),
+      EndElem("expression"),
+      Symbol(')'),
+      EndElem("term"),
+      EndElem("term"),
+      EndElem("expression"))
+
+    val tokeniser = testTokeniser(string + " rest of programme")
     CompilationEngine.compileExpression(tokeniser) shouldBe Right(expectedElems)
   }
 
