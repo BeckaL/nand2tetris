@@ -16,6 +16,7 @@ object CompilationEngine {
     } yield List(Keyword("let"), varName, Symbol('='), term, Symbol(';'))
   }
 
+  //TODO
   def compileClass(t: Tokeniser): MaybeLexicalElements = ???
 
   def compileClassVarDec(t: Tokeniser): MaybeLexicalElements =
@@ -27,10 +28,36 @@ object CompilationEngine {
     } yield List(staticOrField, varType) ++ varNameLexElems :+ Symbol(';')
 
 
+  //TODO
   def compileSubroutine(t: Tokeniser): MaybeLexicalElements = ???
 
-  def compileParameterList(t: Tokeniser): MaybeLexicalElements = ???
+  @tailrec
+  def compileParameterList(t: Tokeniser, closingChar: String, elemsSoFar: List[LexicalElem] = List()): MaybeLexicalElements =
+    if (t.currentToken == closingChar) {
+      Right(elemsSoFar)
+    } else {
+      val result = for {
+        varType <- expectTypeAndAdvance(t)
+        varNameLexElems <- expectVarAndAdvance(t)
+      } yield List(varType, varNameLexElems)
+      result match {
+        case Left(str) => Left(str)
+        case Right(newElems) =>
+          if (t.currentToken == closingChar) {
+            Right(elemsSoFar ++ newElems)
+          } else if (t.currentToken != ",") {
+            Left(s"expected continuation of param list with comma, got ${t.currentToken}")
+          } else {
+            safeAdvance(t) match {
+              case Left(err) => Left(err)
+              case _ => compileParameterList(t, closingChar, elemsSoFar ++ (newElems :+ Symbol(',')))
+            }
+          }
+      }
+    }
+    
 
+  //TODO
   def compileSubroutineBody(t: Tokeniser): MaybeLexicalElements = ???
 
   def compileVarDec(t: Tokeniser): MaybeLexicalElements =
@@ -79,12 +106,12 @@ object CompilationEngine {
       exp <- parseExpressionPartial(t)
       _ <- expectStringAndAdvance(t, ")")
       statementsWithCurlyBrackets <- expectStatementsEnclosedByCurlyBrackets(t)
-      optionalElse <- 
+      optionalElse <-
         if (t.currentToken == "else")
           safeAdvance(t)
             .flatMap(_ => expectStatementsEnclosedByCurlyBrackets(t))
             .map(statementWithCurlies => Keyword("else") +: statementWithCurlies)
-        else 
+        else
           Right(List())
     } yield List(Keyword("if"), Symbol('('), exp, Symbol(')')) ++ statementsWithCurlyBrackets ++ optionalElse
 
@@ -140,6 +167,7 @@ object CompilationEngine {
       _ <- expectStringAndAdvance(t, ";")
     } yield List(Keyword("return")) ++ (optionalExpression.toList :+ Symbol(';'))
 
+  //TODO part 2
   def compileExpression(t: Tokeniser): MaybeLexicalElements = ???
 
   def compileExpressionList(t: Tokeniser): Either[String, (List[LexicalElem], Int)] =
@@ -161,6 +189,7 @@ object CompilationEngine {
 
     go(List(), 0)
 
+  //TODO
   def compileTerm(t: Tokeniser): MaybeLexicalElements = ???
 
   private def expectTerm(t: Tokeniser): Either[String, LexicalElem] =
@@ -207,7 +236,6 @@ object CompilationEngine {
 
   private def stringConstFromQuotedString(s: String): StringConst =
     StringConst(s.tail.dropRight(1))
-
 
   private def parseNVars(t: Tokeniser, soFar: List[LexicalElem]): MaybeLexicalElements =
     expectVarAndAdvance(t).flatMap(varNameLexElem =>

@@ -106,7 +106,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
       //TODO more whiles - not super necessary though
     )
 
-    forAll(validWhileStatements) {case (validStatement, expectedTokens) =>
+    forAll(validWhileStatements) { case (validStatement, expectedTokens) =>
       val tokeniser = testTokeniser(validStatement + " rest of programme")
       CompilationEngine.compileWhile(tokeniser) shouldBe Right(expectedTokens)
     }
@@ -242,6 +242,36 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     forAll(invalidVarDecs("var")) { case invalidVarDecString =>
       val t = testTokeniser(invalidVarDecString ++ " rest of programme")
       CompilationEngine.compileVarDec(t).isLeft shouldBe true
+    }
+  }
+
+  "compileParameterList" should "compile a valid parameter list" in {
+    val validParameterLists = Table(
+      ("validStatement", "expectedTokens"),
+      (")", List()),
+      ("boolean myBool", List(k("boolean"), id("myBool"))),
+      ("boolean myBool , int myInt , className myClass , char myChar", List(k("boolean"), id("myBool"), sym(','), k("int"), id("myInt"), sym(','), id("className"), id("myClass"), sym(','), k("char"), id("myChar")))
+    )
+
+    forAll(validParameterLists) { case (statementString, expectedTokens) =>
+      val closingChar = ")"
+      val t = testTokeniser(statementString ++ s" $closingChar")
+      CompilationEngine.compileParameterList(t, closingChar) shouldBe Right(expectedTokens)
+    }
+  }
+
+  it should "return a left for invalid parameter lists" in {
+    val invalidParameterList = Table(
+      "invalidParam",
+      "this foo",
+      "foo , bar",
+      "boolean foo , this bar",
+      "boolean myBool anotherBool"
+    )
+    forAll(invalidParameterList) { case invalidParameterListString =>
+      val closingChar = ")"
+      val t = testTokeniser(invalidParameterListString ++ s"$closingChar)")
+      CompilationEngine.compileParameterList(t, closingChar).isLeft shouldBe true
     }
   }
 
