@@ -88,6 +88,9 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   private def wrapInDoubleTag(outer: String, inner: String, elems: LexicalElem*): List[LexicalElem] =
     wrapInTag(wrapInTag(elems.toList, inner), outer)
 
+  private def wrapInDoubleTag(outer: String, inner: String, elems: List[LexicalElem]): List[LexicalElem] =
+    wrapInTag(wrapInTag(elems, inner), outer)
+
 
   "compileDo" should "compile a do statement" in {
     import StatementsHelper.statementsToTokens
@@ -99,7 +102,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
       (doFooDotBarString, statementsToTokens(doFooDotBarString)),
       ("do subroutineName ( 5 ) ;", wrapInTag(List(k("do"), id("subroutineName"), sym('(')) ++ wrapInTag(wrapInDoubleTag("expression", "term", int(5)), "expressionList") ++ List(sym(')'), sym(';')), "doStatement")),
       ("do subroutineName ( 5 , 4 ) ;", wrapInTag(List(k("do"), id("subroutineName"), sym('(')) ++ wrapInTag(wrapInDoubleTag("expression", "term", int(5)) ++ List(sym(',')) ++ wrapInDoubleTag("expression", "term", int(4)), "expressionList") ++ List(sym(')'), sym(';')), "doStatement")),
-      ("do foo . bar ( \"hi\" , myVar ) ;", wrapInTag(List(k("do"), id("foo"), sym('.'), id("bar"), sym('(')) ++ wrapInTag(wrapInDoubleTag("expression", "term", str("hi")) ++ List(sym(',')) ++ wrapInDoubleTag("expression", "term", id("myVar")), "expressionList")  ++ List(sym(')'), sym(';')), "doStatement"))
+      ("do foo . bar ( \"hi\" , myVar ) ;", wrapInTag(List(k("do"), id("foo"), sym('.'), id("bar"), sym('(')) ++ wrapInTag(wrapInDoubleTag("expression", "term", str("hi")) ++ List(sym(',')) ++ wrapInDoubleTag("expression", "term", id("myVar")), "expressionList") ++ List(sym(')'), sym(';')), "doStatement"))
     )
     //TODO more complex expression lists (although this should be handled by implementing expressions
 
@@ -381,6 +384,61 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     CompilationEngine.compileClass(tokeniser) shouldBe Right(wrapInTag(List(k("class"), id("myClass")) ++ wrapCurly(classVarDecTokens ++ SubroutineHelper.functionDecTokens ++ SubroutineHelper.methodDecTokens), "class"))
   }
 
+  "compileExpression" should "compile an expression with a single term" in {
+    val singleExpressionTerm5 = wrapInDoubleTag("expression", "term", int(5))
+    val expressions = Table(
+      ("expressionString", "expectedTokens"),
+      ("5", wrapInDoubleTag("expression", "term", int(5))),
+      ("\"hi\"", wrapInDoubleTag("expression", "term", str("hi"))),
+      ("myVar", wrapInDoubleTag("expression", "term", id("myVar"))),
+      ("true", wrapInDoubleTag("expression", "term", k("true"))),
+      ("foo ( 5 )", wrapInDoubleTag("expression", "term", List(id("foo"), sym('(')) ++ wrapInTag(singleExpressionTerm5, "expressionList") ++ List(sym(')')))),
+      ("foo . bar ( 5 )", wrapInDoubleTag("expression", "term", List(id("foo"), sym('.'), id("bar"), sym('(')) ++ wrapInTag(singleExpressionTerm5, "expressionList") ++ List(sym(')')))),
+      ("foo [ 5 ]", wrapInDoubleTag("expression", "term", List(id("foo"), sym('[')) ++ singleExpressionTerm5 :+ sym(']'))),
+      ("- 5", wrapInDoubleTag("expression", "term", List(sym('-')) ++ wrapInTag(int(5), "term")))
+    )
+
+    forAll(expressions) { case (validString, expectedTokens) =>
+      val tokeniser = testTokeniser(validString ++ " rest of input")
+      CompilationEngine.compileExpression(tokeniser) shouldBe Right(expectedTokens)
+    }
+  }
+
+  it should "compile a term op term expression" in {
+    val expressionString = "foo + 5"
+    val expectedElems = wrapInTag(wrapInTag(id("foo"), "term") ++ List(sym('+')) ++ wrapInTag(int(5), "term"), "expression")
+
+    val tokeniser = testTokeniser(expressionString ++ " rest of input")
+    CompilationEngine.compileExpression(tokeniser) shouldBe Right(expectedElems)
+  }
+
+  it should "compile a complex expression" in {
+    val string = "foo . bar ( 5 * 4 , baz ( true ) )"
+    val methodCallTokens = List(id("foo"), sym('.'), id("bar"))
+
+    val term5 = wrapInTag(int(5), "term")
+    val term4 = wrapInTag(int(4), "term")
+    val firstParamExpressionTokens = wrapInTag(term5 ++ List(sym('*')) ++ term4, "expression")
+
+    val trueTerm = wrapInDoubleTag("expression", "term", k("true"))
+    val secondMethodCall = List(id("baz"), sym('('), StartElem("expressionList")) ++ trueTerm ++ List(EndElem("expressionList"), sym(')'))
+    val secondParamExpressionTokens = wrapInDoubleTag("expression", "term", secondMethodCall)
+
+    val expected = wrapInDoubleTag("expression", "term", methodCallTokens ++ wrapBracket(wrapInTag(firstParamExpressionTokens ++ List(sym(',')) ++ secondParamExpressionTokens, "expressionList")))
+  }
+
+  it should "return a left for an invalid expression" in {
+    val invalidExpressions = Table(
+      ("invalid expression string"),
+      ("function")
+    )
+
+    forAll(invalidExpressions) { invalidExpressionString =>
+      val tokeniser = testTokeniser(invalidExpressionString + " rest of programme")
+      CompilationEngine.compileExpression(tokeniser).isLeft shouldBe true
+    }
+  }
+
 
   private def wrapCurly(s: String) = if (s.nonEmpty) "{ " + s + " }" else "{ }"
 
@@ -402,8 +460,8 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     override def currentToken: String = tokens.head
 
     override def hasMoreTokens: Boolean = tokens.tail.nonEmpty
-    
-    override def safeAdvance: Either[String, Unit] =     
+
+    override def safeAdvance: Either[String, Unit] =
       if (this.hasMoreTokens)
         this.advance()
         Right(())

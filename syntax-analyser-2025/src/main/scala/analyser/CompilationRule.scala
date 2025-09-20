@@ -43,6 +43,11 @@ case class KeywordMatchingOneOfRule(stringsToMatch: List[String]) extends Compil
     stringMatchingRule(t, stringsToMatch, Keyword.apply)
 }
 
+case class SymbolMatchingOneOfRule(symbolsToMatch: List[String]) extends CompilationRule {
+  override def compile(t: Tokeniser): MaybeLexicalElements =
+    stringMatchingRule(t, symbolsToMatch, (s: String) => Symbol(s.head))
+}
+
 case object VarRule extends CompilationRule {
   override def compile(t: Tokeniser): MaybeLexicalElements =
     val s = t.currentToken
