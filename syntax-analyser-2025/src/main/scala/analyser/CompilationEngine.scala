@@ -1,5 +1,6 @@
 package analyser
 
+import scala.annotation.tailrec
 import scala.util.chaining.scalaUtilChainingOps
 
 object CompilationEngine {
@@ -40,11 +41,46 @@ object CompilationEngine {
       _ <- expectStringAndAdvance(t, ";")
     } yield List(Keyword("var"), varType) ++ varNameLexElems :+ Symbol(';')
 
-  def compileStatements(t: Tokeniser): MaybeLexicalElements = ???
+  @tailrec
+  def compileStatements(t: Tokeniser, terminatingString: String, soFar: List[LexicalElem]): MaybeLexicalElements = {
+    val (result: MaybeLexicalElements, continue: Boolean) = t.currentToken match {
+      case "let" => (compileLet(t), true)
+      case "do" => (compileDo(t), true)
+      case "while" => (compileWhile(t), true)
+      case s if s == terminatingString => (Right(soFar), false)
+      case otherString =>
+        val result: MaybeLexicalElements = Left(s"uh oh, tried to compile a statement starting with ${otherString}")
+        (result, false)
+    }
+
+    result match {
+      case Right(allLexElems) if !continue => Right(allLexElems)
+      case Left(_) => result
+      case Right(newLexElems) =>
+        t.currentToken match {
+          case s if s == terminatingString => Right(soFar ++ newLexElems)
+          case otherString if otherString != "," => Left(s"uh oh, expected terminating char $terminatingString or comma, got ${otherString}")
+          case "," => 
+            safeAdvance(t) match {
+              case Left(err) => Left(err)
+              case Right(_) => compileStatements(t, terminatingString, soFar ++ newLexElems :+ Symbol(','))
+            }
+        }
+    }
+  }
 
   def compileIf(t: Tokeniser): MaybeLexicalElements = ???
 
-  def compileWhile(t: Tokeniser): MaybeLexicalElements = ???
+  def compileWhile(t: Tokeniser): MaybeLexicalElements =
+    for {
+      _ <- expectStringAndAdvance(t, "while")
+      _ <- expectStringAndAdvance(t, "(")
+      exp <- parseExpressionPartial(t)
+      _ <- expectStringAndAdvance(t, ")")
+      _ <- expectStringAndAdvance(t, "{")
+      statements <- compileStatements(t, "}", List())
+      _ <- expectStringAndAdvance(t, "}")
+    } yield List(Keyword("while"), Symbol('('), exp, Symbol(')'), Symbol('{')) ++ (statements :+ Symbol('}'))
 
   def compileDo(t: Tokeniser): MaybeLexicalElements = {
     for {

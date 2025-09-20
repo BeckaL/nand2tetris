@@ -55,11 +55,16 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   //"let foo = ";
   //"let foo = ;"
 
+  object DoStatements {
+    val doFooDotBarString = "do foo . bar ( ) ;"
+    val doFooDotBarTokens: List[LexicalElem] = List(k("do"), id("foo"), sym('.'), id("bar"), sym('('), sym(')'), sym(';'))
+  }
+
   "compileDo" should "compile a do statement" in {
     val validDoStatements = Table(
       ("statement", "expectedTokens"),
       ("do subroutineName ( ) ;", List(k("do"), id("subroutineName"), sym('('), sym(')'), sym(';'))),
-      ("do foo . bar ( ) ;", List(k("do"), id("foo"), sym('.'), id("bar"), sym('('), sym(')'), sym(';'))),
+      (DoStatements.doFooDotBarString, DoStatements.doFooDotBarTokens),
       ("do subroutineName ( 5 ) ;", List(k("do"), id("subroutineName"), sym('('), int(5), sym(')'), sym(';'))),
       ("do subroutineName ( 5 , 4 ) ;", List(k("do"), id("subroutineName"), sym('('), int(5), sym(','), int(4), sym(')'), sym(';'))),
       ("do foo . bar ( \"hi\" , myVar ) ;", List(k("do"), id("foo"), sym('.'), id("bar"), sym('('), str("hi"), sym(','), id("myVar"), sym(')'), sym(';')))
@@ -87,6 +92,38 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     forAll(invalidDoStatements) { invalidStatement =>
       val tokeniser = testTokeniser(invalidStatement + " rest of programme")
       CompilationEngine.compileDo(tokeniser).isLeft shouldBe true
+    }
+  }
+
+  "compile while" should "compile a valid while statement" in {
+    import DoStatements.doFooDotBarString
+    import DoStatements.doFooDotBarTokens
+    val validWhileStatements = Table(
+      ("validStatements", "expectedTokens"),
+      (s"while ( true ) { ${doFooDotBarString} }", (k("while") +: wrapBracket(List(k("true")))) ++ wrapCurly(doFooDotBarTokens)),
+      (s"while ( true ) { }", (k("while") +: wrapBracket(List(k("true")))) ++ wrapCurly(List())),
+      (s"while ( true ) { $doFooDotBarString , $doFooDotBarString }", (k("while") +: wrapBracket(List(k("true")))) ++ wrapCurly(doFooDotBarTokens ++ List(Symbol(',')) ++ doFooDotBarTokens)),
+
+      //TODO more whiles - not super necessary though
+    )
+
+    forAll(validWhileStatements) {case (validStatement, expectedTokens) =>
+      val tokeniser = testTokeniser(validStatement + " rest of programme")
+      CompilationEngine.compileWhile(tokeniser) shouldBe Right(expectedTokens)
+    }
+  }
+
+  it should "return a left for an invalid while statement" in {
+    val invalidDoStatements = Table(
+      "invalid statement",
+      "while ;",
+      "while true { do foo . bar () ; }",
+      "while ( true ) do foo . bar () ; }"
+    )
+
+    forAll(invalidDoStatements) { invalidStatement =>
+      val tokeniser = testTokeniser(invalidStatement + " rest of programme")
+      CompilationEngine.compileWhile(tokeniser).isLeft shouldBe true
     }
   }
 
