@@ -135,9 +135,7 @@ def compileWithRules(t: Tokeniser, rules: List[CompilationRule], enclosingElem: 
           case Left(err) => Left(err)
           case Right(newElems) => go(soFar ++ newElems, otherRules)
 
-  val r = go(List(), rules)
-  println(s"finished parsing elem with rules starting ${rules.head} got ${r}")
-  r
+  go(List(), rules)
 
 private def encloseWithTags(tagname: String, elems: List[LexicalElem]) =
   StartElem(tagname) +: elems :+ EndElem(tagname)
