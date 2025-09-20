@@ -10,5 +10,6 @@ val scalaXml = Seq("org.scala-lang.modules" %% "scala-xml" % "2.3.0")
 lazy val root = (project in file("."))
   .settings(
     name := "syntax-analyser-2025",
-    libraryDependencies ++= scalatest ++ scalaXml
+    libraryDependencies ++= scalatest ++ scalaXml,
+    assembly / assemblyJarName := "submission.jar"
   )

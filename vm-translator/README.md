@@ -6,8 +6,19 @@ Really struggled working out how to submit this in scala - many many failed atte
 
 * Add sbt assembly to plugins
 * Add some configuration to build sbt to name jar file
-* Run `sbt assembly` to generate the jar file from the source code
-* Find generated jar file in target 
-* Add empty makefile
+* Run `sbt assembly` (note assembl*y* not assmebl*e*) to generate the jar file from the source code
+* Find generated jar file in target (target/your-scala-version/submission.jar)
+* Add makefile consisting of the following `.DEFAULT none: ;`
 * Add VM translator script to run the jar file via `java -jar name-of-jar-file.jar $arg0`
+* Add executable permission to the script you just created
 
+To create the zip file:
+Zip the folder containing the script, the makefile and the jar, but not the directory itself, with the following
+`cd my-folder
+zip -r ../intended-name-of-zip.zip .
+`
+
+Debugging:
+* Unzip the file into a folder, and ensure the three files are top-level
+* Ensure the VM translator script has execute permissions
+* Run the submission.jar with `java -jar path-to-submission/submission.jar <whatever-command-you-need>` 
