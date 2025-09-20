@@ -16,9 +16,29 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   private def str(s: String) = StringConst(s)
 
+  object StatementsHelper {
+    val doFooDotBarString = "do foo . bar ( ) ;"
+    val letCountEqual5String = "let count = 5 ;"
+    val returnCountString = "return count ;"
+    val whileTrueDoFooDotBarString = s"while ( true ) { $doFooDotBarString }"
+    val ifTrueDoFooDotBarString = s"if ( true ) { ${doFooDotBarString} }"
+    private val doFooDotBarTokens = List(k("do"), id("foo"), sym('.'), id("bar"), sym('('), sym(')'), sym(';'))
+    val statementsToTokens: Map[String, List[LexicalElem]] = Map(
+      doFooDotBarString -> doFooDotBarTokens,
+      letCountEqual5String -> List(k("let"), id("count"), sym('='), int(5), sym(';')),
+      returnCountString -> List(k("return"), id("count"), sym(';')),
+      whileTrueDoFooDotBarString -> (List(k("while")) ++ wrapBracket(List(k("true"))) ++ wrapCurly(doFooDotBarTokens)),
+      ifTrueDoFooDotBarString -> (List(k("if"), Symbol('('), k("true"), Symbol(')')) ++ wrapCurly(doFooDotBarTokens))
+    )
+
+  }
+
+  def wrapInStatement(elems: List[LexicalElem], statementType: String) =
+    StartElem(statementType) +: (elems :+ EndElem(statementType))
+
   val validLetStatements = Table(("statement", "expected Tokens"),
     ("let count = count ;", List(k("let"), id("count"), sym('='), id("count"), sym(';'))),
-    ("let count = 5 ;", List(k("let"), id("count"), sym('='), int(5), sym(';'))),
+    (StatementsHelper.letCountEqual5String, StatementsHelper.statementsToTokens(StatementsHelper.letCountEqual5String)),
     ("let count = 500 ;", List(k("let"), id("count"), sym('='), int(500), sym(';'))),
     ("let count = true ;", List(k("let"), id("count"), sym('='), k("true"), sym(';'))),
     ("let count = \"hi\" ;", List(k("let"), id("count"), sym('='), str("hi"), sym(';'))),
@@ -63,16 +83,16 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     }
   }
 
-  object DoStatements {
-    val doFooDotBarString = "do foo . bar ( ) ;"
-    val doFooDotBarTokens: List[LexicalElem] = List(k("do"), id("foo"), sym('.'), id("bar"), sym('('), sym(')'), sym(';'))
-  }
+
 
   "compileDo" should "compile a do statement" in {
+    import StatementsHelper.statementsToTokens
+    import StatementsHelper.doFooDotBarString
+
     val validDoStatements = Table(
       ("statement", "expectedTokens"),
       ("do subroutineName ( ) ;", List(k("do"), id("subroutineName"), sym('('), sym(')'), sym(';'))),
-      (DoStatements.doFooDotBarString, DoStatements.doFooDotBarTokens),
+      (doFooDotBarString, statementsToTokens(doFooDotBarString)),
       ("do subroutineName ( 5 ) ;", List(k("do"), id("subroutineName"), sym('('), int(5), sym(')'), sym(';'))),
       ("do subroutineName ( 5 , 4 ) ;", List(k("do"), id("subroutineName"), sym('('), int(5), sym(','), int(4), sym(')'), sym(';'))),
       ("do foo . bar ( \"hi\" , myVar ) ;", List(k("do"), id("foo"), sym('.'), id("bar"), sym('('), str("hi"), sym(','), id("myVar"), sym(')'), sym(';')))
@@ -104,11 +124,11 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   }
 
   "compile while" should "compile a valid while statement" in {
-    import DoStatements.doFooDotBarString
-    import DoStatements.doFooDotBarTokens
+    import StatementsHelper.*
+    val doFooDotBarTokens = statementsToTokens(doFooDotBarString)
     val validWhileStatements = Table(
       ("validStatements", "expectedTokens"),
-      (s"while ( true ) { ${doFooDotBarString} }", (k("while") +: wrapBracket(List(k("true")))) ++ wrapCurly(doFooDotBarTokens)),
+      (whileTrueDoFooDotBarString, statementsToTokens(whileTrueDoFooDotBarString)),
       (s"while ( true ) { }", (k("while") +: wrapBracket(List(k("true")))) ++ wrapCurly(List())),
       (s"while ( true ) { $doFooDotBarString $doFooDotBarString }", (k("while") +: wrapBracket(List(k("true")))) ++ wrapCurly(doFooDotBarTokens ++ doFooDotBarTokens)),
       //TODO more whiles - not super necessary though
@@ -135,10 +155,12 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   }
 
   "compile if" should "compile a valid if statement" in {
+    import StatementsHelper.*
+
     val validIfStatements = Table(
       ("validStatement", "expectedTokens"),
-      (s"if ( true ) { ${DoStatements.doFooDotBarString} }", List(k("if"), Symbol('('), k("true"), Symbol(')')) ++ wrapCurly(DoStatements.doFooDotBarTokens)),
-      (s"if ( true ) { ${DoStatements.doFooDotBarString} } else { ${DoStatements.doFooDotBarString} }", List(k("if"), Symbol('('), k("true"), Symbol(')')) ++ wrapCurly(DoStatements.doFooDotBarTokens) ++ List(k("else")) ++ wrapCurly(DoStatements.doFooDotBarTokens)),
+      (ifTrueDoFooDotBarString, statementsToTokens(ifTrueDoFooDotBarString)),
+      (s"if ( true ) { ${doFooDotBarString} } else { ${doFooDotBarString} }", List(k("if"), Symbol('('), k("true"), Symbol(')')) ++ wrapCurly(statementsToTokens(doFooDotBarString)) ++ List(k("else")) ++ wrapCurly(statementsToTokens(doFooDotBarString))),
       //TODO more - not super necessary
     )
 
@@ -312,6 +334,44 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
       val tokeniser = testTokeniser(validStatement ++ " rest of programme")
       CompilationEngine.compileSubroutineBody(tokeniser) shouldBe Right(expectedTokens)
     }
+  }
+
+  object SubroutineHelper {
+    val functionDec = "function int returnV1 ( int v1 , int v2 ) { return v1 ; }"
+    val functionDecTokens = List(k("function"), k("int"), id("returnV1"), sym('('), k("int"), id("v1"), sym(','), k("int"), id("v2"), sym(')'), sym('{'), k("return"), id("v1"), sym(';'), sym('}'))
+    val methodDec = "method void returnTrue ( String string , int i ) { return true ; } "
+    val methodDecTokens = List(k("method"), k("void"), id("returnTrue"), sym('('), id("String"), id("string"), sym(','), k("int"), id("i"), sym(')'), sym('{'), k("return"), k("true"), sym(';'), sym('}'))
+    val constructorDec = "constructor myClass create ( String string ) { return myClassInstance ; }"
+    val constructorTokens = List(k("constructor"), id("myClass"), id("create"), sym('('), id("String"), id("string"), sym(')'), sym('{'), k("return"), id("myClassInstance"), sym(';'), sym('}'))
+  }
+
+  "compileSubroutine" should "compile a valid subroutine" in {
+    import SubroutineHelper.*
+    val validSubroutines = Table(
+      ("validString", "expectedTokens"),
+      (functionDec, functionDecTokens),
+      (methodDec, methodDecTokens),
+      (constructorDec, constructorTokens)
+    )
+
+    forAll(validSubroutines) { case (validString, expectedTokens) =>
+      val tokeniser = testTokeniser(validString ++ " rest of input")
+      CompilationEngine.compileSubroutine(tokeniser) shouldBe Right(expectedTokens)
+    }
+
+
+    //TODO more examples
+  }
+
+  //TODO
+  "compile class" should "compile a valid class" in {
+    val classVarDecs = "static int foo ;"
+    val classVarDecTokens = List(k("static"), k("int"), id("foo"), sym(';'))
+    val validClassString =
+      s"class myClass { $classVarDecs ${SubroutineHelper.functionDec} }"
+
+    val tokeniser = testTokeniser(validClassString)
+    CompilationEngine.compileClass(tokeniser) shouldBe Right(List(k("class"), id("myClass")) ++ wrapCurly(classVarDecTokens ++ SubroutineHelper.functionDecTokens))
   }
 
 

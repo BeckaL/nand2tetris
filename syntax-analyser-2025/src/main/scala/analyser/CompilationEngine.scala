@@ -17,7 +17,24 @@ object CompilationEngine {
   }
 
   //TODO
-  def compileClass(t: Tokeniser): MaybeLexicalElements = ???
+  def compileClass(t: Tokeniser): MaybeLexicalElements = {
+    for {
+      _ <- expectStringAndAdvance(t, "class")
+      className <- expectVarAndAdvance(t)
+      _ <- expectStringAndAdvance(t, "{")
+      classVarDecs <- compileClassVarDec(t) //TODO handle multiple
+      subroutineDecs <- compileSubroutine(t) //TODO handle multiple
+      closingToken <- if (t.currentToken == "}") {
+        if (t.hasMoreTokens) {
+          Left("uh oh tokens after class has closed")
+        } else {
+          Right(Symbol('}'))
+        }
+      } else {
+        Left(s"expected closing char } for class")
+      }
+    } yield List(Keyword("class"), className, Symbol('{')) ++ classVarDecs ++ subroutineDecs :+ Symbol('}')
+  }
 
   def compileClassVarDec(t: Tokeniser): MaybeLexicalElements =
     for {
@@ -29,7 +46,17 @@ object CompilationEngine {
 
 
   //TODO
-  def compileSubroutine(t: Tokeniser): MaybeLexicalElements = ???
+  def compileSubroutine(t: Tokeniser): MaybeLexicalElements = {
+    for {
+      subroutineType <- expectOneOfAndAdvance(t, List("function", "method", "constructor"), Keyword)
+      returnType <- expectTypeAndAdvance(t, includeVoid = true)
+      subroutineName <- expectVarAndAdvance(t)
+      _ <- expectStringAndAdvance(t, "(")
+      paramList <- compileParameterList(t, ")", List())
+      _ <- expectStringAndAdvance(t, ")")
+      subroutineBody <- compileSubroutineBody(t)
+    } yield List(subroutineType, returnType, subroutineName, Symbol('(')) ++ (paramList :+ Symbol(')')) ++ subroutineBody
+  }
 
   @tailrec
   def compileParameterList(t: Tokeniser, closingChar: String, elemsSoFar: List[LexicalElem] = List()): MaybeLexicalElements =
@@ -225,11 +252,13 @@ object CompilationEngine {
     else
       Left(s"expected ${t.currentToken} toMatch one of $toMatch")
 
-  private def expectTypeAndAdvance(t: Tokeniser): Either[String, LexicalElem] =
+  private def expectTypeAndAdvance(t: Tokeniser, includeVoid: Boolean = false): Either[String, LexicalElem] =
     val currentToken = t.currentToken
     TokenTypes.tokenType(currentToken) match {
       case TokenTypes.Keyword =>
-        if (List("boolean", "char", "int").contains(currentToken))
+        val variableTypes = List("boolean", "char", "int")
+        val typesToCheck = if (includeVoid) "void" +: variableTypes else variableTypes
+        if (typesToCheck.contains(currentToken))
           safeAdvance(t).flatMap(_ => Right(Keyword(currentToken)))
         else
           Left(s"keyword $currentToken cannot be used as a type, valid keyword types are boolean char or int")

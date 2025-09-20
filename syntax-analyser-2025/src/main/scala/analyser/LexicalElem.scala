@@ -4,6 +4,14 @@ trait LexicalElem {
   def toTokenString: String
 }
 
+case class StartElem(elem: String) extends LexicalElem {
+  override def toTokenString: String = s"<${elem}>"
+}
+
+case class EndElem(elem: String) extends LexicalElem {
+  override def toTokenString: String = s"</$elem>"
+}
+
 case class Symbol(s: Char) extends LexicalElem {
   override def toTokenString = s"<symbol> ${scala.xml.Utility.escape(s.toString)} </symbol>"
 }
