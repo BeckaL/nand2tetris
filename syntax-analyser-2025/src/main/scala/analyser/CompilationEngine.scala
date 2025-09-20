@@ -5,7 +5,7 @@ import scala.util.chaining.scalaUtilChainingOps
 
 object CompilationEngine {
   def compileLet(t: Tokeniser): MaybeLexicalElements =
-    val optionalExpressionRule = optionalElemRule(_ == "[", objectRule(List(symbolRule("["), compileExpression, symbolRule("]"))), false)
+    val optionalExpressionRule = optionalElemRule(_ == "[", List(symbolRule("["), compileExpression, symbolRule("]")), false)
     val rules = List(keywordRule("let"), varRule, optionalExpressionRule, symbolRule("="), compileExpression, semicolon)
     compileWithRules(t, rules, Some("letStatement"))
 
@@ -94,19 +94,19 @@ object CompilationEngine {
       openBracket,
       compileExpression,
       closeBracket,
-      statementsEnclosedByCurlies,
-      optionalElemRule(_ == "else", (t: Tokeniser) => statementsEnclosedByCurlies(t).map(Keyword("else") +: _))
+      compileWithRules(_, statementsEnclosedByCurlies, None),
+      optionalElemRule(_ == "else", List((tk: Tokeniser) => compileWithRules(tk, statementsEnclosedByCurlies, None).map(elems => Keyword("else") +: elems)))
     )
     compileWithRules(t, rules, Some("ifStatement"))
 
-  val statementsEnclosedByCurlies = objectRule(List(openCurlyBracket, compileStatements(_, "}"), closeCurlyBracket))
+  val statementsEnclosedByCurlies = List(openCurlyBracket, compileStatements(_, "}"), closeCurlyBracket)
 
   def compileWhile(t: Tokeniser): MaybeLexicalElements =
-    val rules = List(keywordRule("while"), openBracket, compileExpression, closeBracket, statementsEnclosedByCurlies)
+    val rules = List(keywordRule("while"), openBracket, compileExpression, closeBracket) ++ statementsEnclosedByCurlies
     compileWithRules(t, rules, Some("whileStatement"))
 
   def compileDo(t: Tokeniser): MaybeLexicalElements = {
-    val doRules = List(keywordRule("do"), objectRule(subroutineCallRules), semicolon)
+    val doRules = List(keywordRule("do")) ++ subroutineCallRules ++ List(semicolon)
     compileWithRules(t, doRules, Some("doStatement"))
   }
 
@@ -129,7 +129,7 @@ object CompilationEngine {
     compileWithRules(t, subroutineCallRules.tail, None).map(elems => v +: elems)
 
   def compileReturn(t: Tokeniser): MaybeLexicalElements =
-    val optionalExpressionRule = optionalElemRule(_ != ";", compileExpression, advanceIfConditionMet = false)
+    val optionalExpressionRule = optionalElemRule(_ != ";", List(compileExpression), advanceIfConditionMet = false)
 
     val rules = List(keywordRule("return"), optionalExpressionRule, semicolon)
     compileWithRules(t, rules, Some("returnStatement"))
@@ -137,7 +137,7 @@ object CompilationEngine {
   def compileExpression(t: Tokeniser): MaybeLexicalElements =
     val rules = List(
       compileTerm,
-      optionalElemRule(TokenTypes.OPERATORS.contains, objectRule(List(symbolMatchingOneOfRule(TokenTypes.OPERATORS.toList), compileTerm)), false))
+      optionalElemRule(TokenTypes.OPERATORS.contains, List(symbolMatchingOneOfRule(TokenTypes.OPERATORS.toList), compileTerm), false))
     compileWithRules(t, rules, Some("expression"))
 
   def compileExpressionList(t: Tokeniser): Either[String, (List[LexicalElem], Int)] =

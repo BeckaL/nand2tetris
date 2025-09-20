@@ -26,9 +26,6 @@ private def stringMatchingRule(t: Tokeniser, stringsToMatch: List[String], trans
   else
     Left(s"expected one of $stringsToMatch, got ${t.currentToken}")
 
-def objectRule(rules: List[RuleTransformer], enclosingElem: Option[String] = None)(t: Tokeniser) =
-  compileWithRules(t, rules, enclosingElem)
-  
 def keywordMatchingOneOfRule(stringsToMatch: List[String])(t: Tokeniser) =
   stringMatchingRule(t, stringsToMatch, Keyword.apply)
   
@@ -62,11 +59,11 @@ def typeRule(includeVoid: Boolean = false)(t: Tokeniser) =
       Left(s"$currentToken cannot be used as a type")
   }
 
-def optionalElemRule(condition: String => Boolean, rule: Tokeniser => MaybeLexicalElements, advanceIfConditionMet: Boolean = true)(t: Tokeniser) =
+def optionalElemRule(condition: String => Boolean, rules: List[Tokeniser => MaybeLexicalElements], advanceIfConditionMet: Boolean = true, enclosingElem: Option[String] = None)(t: Tokeniser) =
   if (condition(t.currentToken))
     if (advanceIfConditionMet)
-      t.safeAdvance.flatMap(_ => rule(t))
-    else rule(t)
+      t.safeAdvance.flatMap(_ => compileWithRules(t, rules, enclosingElem))
+    else compileWithRules(t, rules, enclosingElem)
   else
     Right(List())
 
