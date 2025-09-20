@@ -33,7 +33,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     CompilationEngine.compileLet(tokeniser) shouldBe Left("uh-oh, expected * to equal =")
   }
 
-  "compileDo" should "compile a do statement with a single expression and no params" in {
+  it should "compile a do statement with a single expression and no params" in {
     val tokeniser = testTokeniser("do square . dispose ( ) ;")
     CompilationEngine.compileDo(tokeniser) shouldBe Right(
       List(k("do"), id("square"), sym('.'), id("dispose"), sym('('), sym(')'), sym(';')))

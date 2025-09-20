@@ -20,9 +20,13 @@ object CompilationEngine {
   def compileDo(t: Tokeniser): MaybeLexicalElements =
     for {
       _ <- assertTokenEqualsAndAdvance(t, "do")
-      subroutineCall <- compileSubroutineCall(t)
+      variable <- getLexElementAsAndAdvance[Identifier](t, LexicalElem.identifierFrom)
+      _ <- assertTokenEqualsAndAdvance(t, ".")
+      method <- getLexElementAsAndAdvance[Identifier](t, LexicalElem.identifierFrom)
+      _ <- assertTokenEqualsAndAdvance(t, "(")
+      list <- getOptionalListOfVarsFollowedByClosingChar(t)
       _ <- assertTokenEqualsAndAdvance(t, ";")
-    } yield Keyword("do") +: subroutineCall :+ Symbol(';')
+    } yield List(Keyword("do"), variable, Symbol('.'), method) ++ wrapBrackets(list) :+ Symbol(';')
 
   def compileWhile(t: Tokeniser): MaybeLexicalElements =
     for {
@@ -189,28 +193,7 @@ object CompilationEngine {
       } else
         Right(List())
     } yield term ++ opTerm
-    
-  private def compileSubroutineCall(t: Tokeniser): MaybeLexicalElements =
-    for {
-      objectNameOrSubroutineName <- getLexElementAsAndAdvance[Identifier](t, LexicalElem.identifierFrom)
-      _ <- assertTokenEqualsAndAdvance(t, ".")
-      subroutineName <- getLexElementAsAndAdvance[Identifier](t, LexicalElem.identifierFrom)
-      _ <- assertTokenEqualsAndAdvance(t, "(")
-      expressions <- compileExpressionList(t).map(_._1)
-      _ <- assertTokenEqualsAndAdvance(t, ")")
-    } yield List(objectNameOrSubroutineName, Symbol('.'), subroutineName) ++ wrapBrackets(expressions)
-    
-  private def compileExpressionList(t: Tokeniser, soFar: List[LexicalElem] = List(), countSoFar: Int = 0): Either[String, (List[LexicalElem], Int)] = {
-    if (t.currentToken == ")") {
-      Right(soFar, countSoFar)
-    } else {
-      for {
-        expression <- compileExpression(t)
-        _ <- assertNextTokenEqualsOneOf(t, Set(")"))
-      } yield (expression, 1)
-    }
-  } 
-    
+
   private def getOptionalListOfVarsFollowedByClosingChar(t: Tokeniser, varListSoFar: List[LexicalElem] = List()): MaybeLexicalElements =
     t.currentToken match
       case ")" => Right(varListSoFar).tap(_ => t.advance())
@@ -218,7 +201,7 @@ object CompilationEngine {
 
   private def getVarParamList(t: Tokeniser, soFar: List[LexicalElem] = List()): MaybeLexicalElements =
     for {
-      varType <- getLexElementAsAndAdvance[LexicalElem](t, LexicalElem.keywordOrIndentifierFrom) // this can return an invalid type
+      varType <- getLexElementAsAndAdvance[LexicalElem](t, LexicalElem.keywordOrIndentifierFrom) //TODO this can return an invalid type
       identifier <- getLexElementAsAndAdvance[Identifier](t, LexicalElem.identifierFrom)
       nextToken <- assertNextTokenEqualsOneOf(t, Set(")", ","))
       continue = nextToken == ","
@@ -228,24 +211,6 @@ object CompilationEngine {
       else
         Right(newVarList)
     } yield r
-    
-//    @tailrec
-//    def compileExpressionList(t: Tokeniser, soFar: List[LexicalElem] = List(), countSoFar: Int = 0): Either[String, (List[LexicalElem], Int)] = {
-//      def compile(): Either[String, (List[LexicalElem], Int)] = {
-//        val newVars = for {
-//          expression <- compileExpression(t)
-//          nextToken <- assertNextTokenEqualsOneOf(t, Set(")", ","))
-//          _ = if (nextToken == ",") {
-//            t.advance()
-//          }
-//          extraToken = if (nextToken == ",") List(Symbol(',')) else List()
-//        } yield soFar ++ expression ++ extraToken
-//        newVars match
-//          case Right(elems) => compileExpressionList(t, elems, countSoFar + 1)
-//          case Left(s) => Left(s)
-//      }
-//      Left("hi")
-//    }
 
   private def getVarDecList(t: Tokeniser, soFar: List[LexicalElem] = List()): MaybeLexicalElements =
     for {
