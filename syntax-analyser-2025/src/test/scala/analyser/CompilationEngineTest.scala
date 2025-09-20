@@ -402,6 +402,12 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     override def currentToken: String = tokens.head
 
     override def hasMoreTokens: Boolean = tokens.tail.nonEmpty
+    
+    override def safeAdvance: Either[String, Unit] =     
+      if (this.hasMoreTokens)
+        this.advance()
+        Right(())
+      else Left("unexpected end of input")
   }
 
   def testTokeniser(l: List[String]) = new FakeTokeniser(l)

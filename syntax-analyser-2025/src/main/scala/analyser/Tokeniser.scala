@@ -6,6 +6,7 @@ trait Tokeniser {
   def advance(): Unit
   def currentToken: String
   def hasMoreTokens: Boolean
+  def safeAdvance: Either[String, Unit]
 }
 
 //At this point, input should be a string with only spaces as whitespace, newlines etc replaced by spaces
@@ -43,6 +44,13 @@ class DefaultTokeniser(input: String, var position: Int = 0, var currentToken: S
       ("[^\\d]".r, 0)
     else
       ("[^a-zA-Z_]".r, 0)
+      
+  override def safeAdvance: Either[String, Unit] = {
+    if (this.hasMoreTokens)
+      this.advance()
+      Right(())
+    else Left("unexpected end of input")
+  }
 }
 
 
