@@ -55,6 +55,71 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   //"let foo = ";
   //"let foo = ;"
 
+  "compileDo" should "compile a do statement" in {
+    val validDoStatements = Table(
+      ("statement", "expectedTokens"),
+      ("do subroutineName ( ) ;", List(k("do"), id("subroutineName"), sym('('), sym(')'), sym(';'))),
+      ("do foo . bar ( ) ;", List(k("do"), id("foo"), sym('.'), id("bar"), sym('('), sym(')'), sym(';'))),
+      ("do subroutineName ( 5 ) ;", List(k("do"), id("subroutineName"), sym('('), int(5), sym(')'), sym(';'))),
+      ("do subroutineName ( 5 , 4 ) ;", List(k("do"), id("subroutineName"), sym('('), int(5), sym(','), int(4), sym(')'), sym(';'))),
+      ("do foo . bar ( \"hi\" , myVar ) ;", List(k("do"), id("foo"), sym('.'), id("bar"), sym('('), str("hi"), sym(','), id("myVar"), sym(')'), sym(';')))
+    )
+    //TODO more complex expression lists (although this should be handled by implementing expressions
+
+    forAll(validDoStatements) { case (statement, expectedTokens) =>
+      val tokeniser = testTokeniser(statement + " rest of programme")
+      CompilationEngine.compileDo(tokeniser) shouldBe Right(expectedTokens)
+    }
+  }
+
+  it should "return a left for invalid do statements" in {
+    val invalidDoStatements = Table(
+      "invalid statement",
+      "do ;",
+      "do foo ;",
+      "do foo . ;",
+      "do 5 . bar ( ) ;",
+      "do foo . bar ( ;",
+      "do foo . bar ( )",
+      "do this . that ( ) ;" //this is not an identifier
+    )
+
+    forAll(invalidDoStatements) { invalidStatement =>
+      val tokeniser = testTokeniser(invalidStatement + " rest of programme")
+      CompilationEngine.compileDo(tokeniser).isLeft shouldBe true
+    }
+  }
+
+  "compile return" should "compile a valid return statement" in {
+    val validReturns = Table(
+      ("statement", "expectedTokens"),
+      ("return ;", List(k("return"), sym(';'))),
+      ("return 5 ;", List(k("return"), int(5), sym(';')))
+      //TODO more complex expressions (to be handled once expressions fully implemented)
+    )
+
+    forAll(validReturns) { case (statement, expectedTokens) =>
+      val tokeniser = testTokeniser(statement + " rest of programme")
+      CompilationEngine.compileReturn(tokeniser) shouldBe Right(expectedTokens)
+    }
+  }
+
+  it should "return a left for an invalid return statement" in {
+    val invalidReturns = Table(
+      "invalidStatement",
+      "retrn ;",
+      "return",
+      "return class ;",
+      "return 4 ~ 5 ;"
+      //TODO more complex expressions (to be handled once expressions fully implemented)
+    )
+
+    forAll(invalidReturns) { invalidStatement =>
+      val tokeniser = testTokeniser(invalidStatement + " rest of programme")
+      CompilationEngine.compileReturn(tokeniser).isLeft shouldBe true
+    }
+  }
+
   val validVarDecs = (varDecTypeString: String) => Table(
     ("statementString", "expectedTokens"),
     (s"$varDecTypeString boolean myBool ;", List(k(varDecTypeString), k("boolean"), id("myBool"), sym(';'))),
@@ -114,7 +179,6 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
       CompilationEngine.compileVarDec(t).isLeft shouldBe true
     }
   }
-
 
 
   private def wrapCurly(s: String) = if (s.nonEmpty) "{ " + s + " }" else "{ }"
