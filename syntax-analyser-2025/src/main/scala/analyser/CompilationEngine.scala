@@ -106,21 +106,12 @@ object CompilationEngine {
     compileWithRules(t, rules, Some("whileStatement"))
 
   def compileDo(t: Tokeniser): MaybeLexicalElements = {
-    val doRules = List(keywordRule("do")) ++ subroutineCallRules ++ List(semicolon)
+    val doRules = List(keywordRule("do"), parseSubroutineCall, semicolon)
     compileWithRules(t, doRules, Some("doStatement"))
   }
 
-  val optionalDotCallRule = (t: Tokeniser) =>
-    if (t.currentToken == ".") {
-      t.safeAdvance.flatMap(_ => varRule(t).map(v2 => Symbol('.') +: v2))
-    } else if (t.currentToken == "(") {
-      Right(List())
-    } else {
-      Left("expected a valid subroutine call")
-    }
-
   val subroutineCallRules =
-    List(varRule, optionalDotCallRule, openBracket, expressionListRule, closeBracket)
+    List(varRule, optionalElemRule(_ == ".", List(symbolRule("."), varRule)), openBracket, expressionListRule, closeBracket)
 
   private def parseSubroutineCall(t: Tokeniser) =
     compileWithRules(t, subroutineCallRules, None)
@@ -158,7 +149,7 @@ object CompilationEngine {
 
     go(List(), 0)
 
-  val compileTermRule: RuleTransformer = 
+  val compileTermRule: RuleTransformer =
     (t: Tokeniser) => {
       val s = t.currentToken
       TokenTypes.tokenType(s) match
