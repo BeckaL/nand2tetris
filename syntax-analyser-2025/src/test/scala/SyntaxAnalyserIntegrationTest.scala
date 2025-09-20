@@ -15,6 +15,7 @@ class SyntaxAnalyserIntegrationTest extends AnyFlatSpec with Matchers with Befor
     Files.deleteIfExists(Paths.get("./src/test/resources/2/Square.xml"))
     Files.deleteIfExists(Paths.get("./src/test/resources/2/Main.xml"))
     Files.deleteIfExists(Paths.get("./src/test/resources/2/SquareGame.xml"))
+    Files.deleteIfExists(Paths.get("./src/test/resources/3/Main.xml"))
   }
 
   "main" should "produce the expected output" in {
@@ -67,6 +68,15 @@ class SyntaxAnalyserIntegrationTest extends AnyFlatSpec with Matchers with Befor
 
     val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/2/ExpectedMain.xml")
     val actualOutput = readLinesWithoutWhitespace("./src/test/resources/2/Main.xml")
+
+    actualOutput shouldBe expectedOutput
+  }
+
+  it should "compile an array oriented programmed" in {
+    Main.main(Array("./src/test/resources/3/Main.jack"))
+
+    val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/3/ExpectedMain.xml")
+    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/3/Main.xml")
 
     actualOutput shouldBe expectedOutput
   }
