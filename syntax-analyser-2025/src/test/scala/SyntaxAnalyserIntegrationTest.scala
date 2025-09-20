@@ -2,8 +2,10 @@ import inputoutput.FileOps.readFile
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.prop.TableDrivenPropertyChecks.forAll
+import org.scalatest.prop.Tables.Table
 
-import java.nio.file.{Files,Paths}
+import java.nio.file.{Files, Paths}
 
 class SyntaxAnalyserIntegrationTest extends AnyFlatSpec with Matchers with BeforeAndAfterEach {
 
@@ -16,6 +18,9 @@ class SyntaxAnalyserIntegrationTest extends AnyFlatSpec with Matchers with Befor
     Files.deleteIfExists(Paths.get("./src/test/resources/2/Main.xml"))
     Files.deleteIfExists(Paths.get("./src/test/resources/2/SquareGame.xml"))
     Files.deleteIfExists(Paths.get("./src/test/resources/3/Main.xml"))
+    Files.deleteIfExists(Paths.get("./src/test/resources/4/Square.xml"))
+    Files.deleteIfExists(Paths.get("./src/test/resources/4/Main.xml"))
+    Files.deleteIfExists(Paths.get("./src/test/resources/4/SquareGame.xml"))
   }
 
   "main" should "produce the expected output" in {
@@ -79,6 +84,21 @@ class SyntaxAnalyserIntegrationTest extends AnyFlatSpec with Matchers with Befor
     val actualOutput = readLinesWithoutWhitespace("./src/test/resources/3/Main.xml")
 
     actualOutput shouldBe expectedOutput
+  }
+
+  it should "compile a whole folder" in {
+    Main.main(Array("./src/test/resources/4"))
+
+    val table = Table(
+      ("expectedOutput", "actualOutput"),
+      ("./src/test/resources/4/ExpectedSquareGame.xml", "./src/test/resources/4/SquareGame.xml"),
+      ("./src/test/resources/4/ExpectedSquare.xml", "./src/test/resources/4/Square.xml"),
+      ("./src/test/resources/4/ExpectedMain.xml", "./src/test/resources/4/Main.xml")
+    )
+
+    forAll(table) { case (expectedOutput, actualOutput) =>
+      readLinesWithoutWhitespace(actualOutput) shouldBe readLinesWithoutWhitespace(expectedOutput)
+    }
   }
 
 
