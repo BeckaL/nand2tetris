@@ -1,0 +1,23 @@
+<tokens>
+    <keyword> let </keyword>
+    <identifier> average </identifier>
+    <symbol> = </symbol>
+    <integerConstant> 4 </integerConstant>
+    <symbol> ; </symbol>
+    <keyword> do </keyword>
+    <identifier> Output </identifier>
+    <symbol> . </symbol>
+    <identifier> printString </identifier>
+    <symbol> ( </symbol>
+    <stringConstant> THE AVERAGE IS:  </stringConstant>
+    <symbol> ) </symbol>
+    <symbol> ; </symbol>
+    <keyword> do </keyword>
+    <identifier> Output </identifier>
+    <symbol> . </symbol>
+    <identifier> printInt </identifier>
+    <symbol> ( </symbol>
+    <identifier> average </identifier>
+    <symbol> ) </symbol>
+    <symbol> ; </symbol>
+</tokens>

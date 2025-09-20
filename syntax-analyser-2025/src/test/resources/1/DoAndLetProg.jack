@@ -1,0 +1,3 @@
+let average = 4;
+do Output.printString("THE AVERAGE IS: ");
+do Output.printInt(average);
