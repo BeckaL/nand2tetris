@@ -103,7 +103,6 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
       (s"while ( true ) { ${doFooDotBarString} }", (k("while") +: wrapBracket(List(k("true")))) ++ wrapCurly(doFooDotBarTokens)),
       (s"while ( true ) { }", (k("while") +: wrapBracket(List(k("true")))) ++ wrapCurly(List())),
       (s"while ( true ) { $doFooDotBarString , $doFooDotBarString }", (k("while") +: wrapBracket(List(k("true")))) ++ wrapCurly(doFooDotBarTokens ++ List(Symbol(',')) ++ doFooDotBarTokens)),
-
       //TODO more whiles - not super necessary though
     )
 
@@ -124,6 +123,35 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     forAll(invalidDoStatements) { invalidStatement =>
       val tokeniser = testTokeniser(invalidStatement + " rest of programme")
       CompilationEngine.compileWhile(tokeniser).isLeft shouldBe true
+    }
+  }
+
+  "compile if" should "compile a valid if statement" in {
+    val validIfStatements = Table(
+      ("validStatement", "expectedTokens"),
+      (s"if ( true ) { ${DoStatements.doFooDotBarString} }", List(k("if"), Symbol('('), k("true"), Symbol(')')) ++ wrapCurly(DoStatements.doFooDotBarTokens)),
+      (s"if ( true ) { ${DoStatements.doFooDotBarString} } else { ${DoStatements.doFooDotBarString} }", List(k("if"), Symbol('('), k("true"), Symbol(')')) ++ wrapCurly(DoStatements.doFooDotBarTokens) ++ List(k("else")) ++ wrapCurly(DoStatements.doFooDotBarTokens)),
+      //TODO more - not super necessary
+    )
+
+    forAll(validIfStatements) { case (validStatement, expectedTokens) =>
+      val tokeniser = testTokeniser(validStatement + " rest of programme")
+      CompilationEngine.compileIf(tokeniser) shouldBe Right(expectedTokens)
+    }
+  }
+
+  it should "return a left for an invalid if statement" in {
+    val invalidDoStatements = Table(
+      "invalid statement",
+      "if ;",
+      "if true { do foo . bar () ; }",
+      "if ( true ) do foo . bar () ; }"
+      //TODO more
+    )
+
+    forAll(invalidDoStatements) { invalidStatement =>
+      val tokeniser = testTokeniser(invalidStatement + " rest of programme")
+      CompilationEngine.compileIf(tokeniser).isLeft shouldBe true
     }
   }
 
