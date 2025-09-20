@@ -1,6 +1,6 @@
 package analyser
 
-import util.chaining.scalaUtilChainingOps
+import scala.util.chaining.scalaUtilChainingOps
 
 object CompilationEngine {
   private type MaybeLexicalElements = Either[String, List[LexicalElem]]
@@ -17,7 +17,29 @@ object CompilationEngine {
 
   def compileClass(t: Tokeniser): MaybeLexicalElements = ???
 
-  def compileClassVarDec(t: Tokeniser): MaybeLexicalElements = ???
+  def compileClassVarDec(t: Tokeniser): MaybeLexicalElements = 
+    for {
+      staticOrField <- expectOneOfAndAdvance(t, List("static", "field"), s => Keyword(s))
+      varType <- expectTypeAndAdvance(t)
+      varNameLexElems <- parseNVars(t, List())
+      _ <- expectStringAndAdvance(t, ";")
+    } yield List(staticOrField, varType) ++ varNameLexElems :+ Symbol(';')
+    
+  private def parseNVars(t: Tokeniser, soFar: List[LexicalElem]): MaybeLexicalElements =
+      expectVar(t).flatMap(varNameLexElem =>
+        t.currentToken match {
+          case ";" => Right(soFar :+ varNameLexElem)
+          case "," => safeAdvance(t).flatMap(_ =>
+            parseNVars(t, soFar ++ List(varNameLexElem, Symbol(',')))
+          )
+          case otherToken => Left(s"expected either ';' or ',' when parsing vars, got $otherToken")
+        })
+      
+  private def safeAdvance(t: Tokeniser): Either[String, Unit] =
+    if (t.hasMoreTokens) 
+      t.advance()
+      Right(())
+    else Left("unexpected end of input")
 
   def compileSubroutine(t: Tokeniser): MaybeLexicalElements = ???
 
@@ -46,15 +68,36 @@ object CompilationEngine {
   private def expectVar(t: Tokeniser): Either[String, LexicalElem] =
     val s = t.currentToken
     TokenTypes.tokenType(s) match
-      case TokenTypes.Identifier => Right(Identifier(s)).tap(_ => t.advance())
+      case TokenTypes.Identifier => safeAdvance(t).flatMap(_ => Right(Identifier(s)))
       case otherTokenType => Left(s"expected token type identifier for string $s but got $otherTokenType")
 
   private def expectStringAndAdvance(t: Tokeniser, toMatch: String): Either[String, Unit] =
     if (t.currentToken == toMatch)
       Right(()).tap(_ => t.advance())
-      //when to call has more tokens?
+      //TODO when to call has more tokens?
     else
-      Left(s"expected let, got ${t.currentToken}")
+      Left(s"expected $toMatch, got ${t.currentToken}")
+      
+  private def expectOneOfAndAdvance(t: Tokeniser, toMatch: List[String], transformer: String => LexicalElem): Either[String, LexicalElem] =
+    val currentToken = t.currentToken
+    if (toMatch.contains(currentToken)) 
+      safeAdvance(t).flatMap(_ => Right(transformer(currentToken)))
+    else
+      Left(s"expected ${t.currentToken} toMatch one of $toMatch")
+
+  private def expectTypeAndAdvance(t: Tokeniser): Either[String, LexicalElem] =
+    val currentToken = t.currentToken
+    TokenTypes.tokenType(currentToken) match {
+      case TokenTypes.Keyword => 
+        if (List("boolean", "char", "int").contains(currentToken))
+         safeAdvance(t).flatMap(_ => Right(Keyword(currentToken)))
+        else 
+          Left(s"keyword $currentToken cannot be used as a type, valid keyword types are boolean char or int")
+      case TokenTypes.Identifier => 
+        Right(Identifier(currentToken)).tap(_ => t.advance())
+      case other =>
+        Left(s"$currentToken cannot be used as a type")
+    }
 
   private def stringConstFromQuotedString(s: String): StringConst =
     StringConst(s.tail.dropRight(1))

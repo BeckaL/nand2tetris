@@ -25,7 +25,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     ("let another_count = count ;", List(k("let"), id("another_count"), sym('='), id("count"), sym(';')))
   )
 
-  //TODO
+  //TODO more complex
   //other compile Lets
   //"let count = myArray[5] ;"
   //"let count = ( 4 + 5 ) * 10 ;"
@@ -44,20 +44,69 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     }
   }
 
-
-
-
+  //TODO: invalid let cases
   //invalid compile lets
   //"let count ;"
   //"let 5 = 10 ;"
   //"let foo = bar"
   //"let foo * bar ; "
+  //"let ",
+  //"let ;"
+  //"let foo = ";
+  //"let foo = ;"
+
+  "compileClassVarDec" should "compile a valid class var dec" in {
+    val validClassVarDecs = Table(
+      ("statementString", "expectedTokens"),
+      ("static boolean myBool ;", List(k("static"), k("boolean"), id("myBool"), sym(';'))),
+      ("field boolean myBool ;", List(k("field"), k("boolean"), id("myBool"), sym(';'))),
+      ("static boolean myBool , mySecondBool ;", List(k("static"), k("boolean"), id("myBool"), sym(','), id("mySecondBool"), sym(';'))),
+      ("static boolean myBool , mySecondBool , myThirdBool ;", List(k("static"), k("boolean"), id("myBool"), sym(','), id("mySecondBool"), sym(','), id("myThirdBool"), sym(';'))),
+      ("static int myNumber ;", List(k("static"), k("int"), id("myNumber"), sym(';'))),
+      ("static char myChar ;", List(k("static"), k("char"), id("myChar"), sym(';'))),
+      ("static myClass myClassInstance ;", List(k("static"), id("myClass"), id("myClassInstance"), sym(';')))
+    )
+
+    forAll(validClassVarDecs) { case (statementString, expectedTokens) =>
+      val t = testTokeniser(statementString)
+      CompilationEngine.compileClassVarDec(t) shouldBe Right(expectedTokens)
+    }
+  }
+
+  it should "return a left for an invalid class var dec" in {
+    val invalidClassVarDecs = Table(
+      "invalidstatementString",
+      "static boolean myBool", //no closing ;
+      "static boolean ;", //no vars ;
+      "static boolean myBool , mySecondBool ", //no closing ;
+      "static boolean myBool , mySecondBool , ;", //dangling comma
+      "static int 5 ;", //not a var name
+      "static this myChar ;", //not a valid type (reserved keyword)
+      "staticField boolean notAProperFieldName ; ", //neither static nor field
+      "static 5 int ;", //5 not a valid identifier
+      "static", //variants of dangling statements
+      "static boolean", //variants of dangling statements
+      "static boolean myBool + myOtherBool ;" //invalid joining char
+    )
+
+    forAll(invalidClassVarDecs) { invalidString =>
+      val t = testTokeniser(invalidString)
+      CompilationEngine.compileClassVarDec(t).isLeft shouldBe true
+    }
+  }
+
+
 
   private def wrapCurly(s: String) = if (s.nonEmpty) "{ " + s + " }" else "{ }"
+
   private def wrapCurly(l: List[LexicalElem]) = (sym('{') +: l) :+ sym('}')
+
   private def wrapCurly(elems: LexicalElem*): List[LexicalElem] = (sym('{') +: elems.toList) :+ sym('}')
+
   private def wrapBracket(s: String) = if (s.nonEmpty) "( " + s + " )" else "( )"
+
   private def wrapBracket(l: List[LexicalElem]) = (sym('(') +: l) :+ sym(')')
+
   private def wrapBracket(elems: LexicalElem*): List[LexicalElem] = (sym('(') +: elems.toList) :+ sym(')')
 
   class FakeTokeniser(var tokens: List[String]) extends Tokeniser {
@@ -67,7 +116,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
     override def currentToken: String = tokens.head
 
-    override def hasMoreTokens: Boolean = tokens.nonEmpty
+    override def hasMoreTokens: Boolean = tokens.tail.nonEmpty
   }
 
   def testTokeniser(l: List[String]) = new FakeTokeniser(l)
