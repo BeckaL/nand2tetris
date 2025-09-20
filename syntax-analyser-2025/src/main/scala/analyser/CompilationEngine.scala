@@ -11,7 +11,7 @@ object CompilationEngine {
       _ <- expectStringAndAdvance(t, "let")
       varName <- expectVarAndAdvance(t)
       _ <- expectStringAndAdvance(t, "=")
-      term <- expectTerm(t)
+      term <- parseExpressionPartial(t)
       _ <- expectStringAndAdvance(t, ";")
     } yield encloseWithTags("letStatement", List(Keyword("let"), varName, Symbol('=')) ++ term ++ List(Symbol(';')))
   }
@@ -32,7 +32,7 @@ object CompilationEngine {
       } else {
         Left(s"expected closing char } for class")
       }
-    } yield List(Keyword("class"), className, Symbol('{')) ++ classVarDecs ++ subroutineDecs :+ Symbol('}')
+    } yield encloseWithTags("class", List(Keyword("class"), className, Symbol('{')) ++ classVarDecs ++ subroutineDecs :+ Symbol('}'))
   }
 
   @tailrec
@@ -74,7 +74,7 @@ object CompilationEngine {
   @tailrec
   def compileParameterList(t: Tokeniser, closingChar: String, elemsSoFar: List[LexicalElem] = List()): MaybeLexicalElements =
     if (t.currentToken == closingChar) {
-      Right(elemsSoFar)
+      Right(encloseWithTags("parameterList", elemsSoFar))
     } else {
       val result = for {
         varType <- expectTypeAndAdvance(t)
@@ -209,7 +209,7 @@ object CompilationEngine {
       _ <- expectStringAndAdvance(t, "return")
       optionalExpression <-
         if (t.currentToken != ";") {
-          expectTerm(t).map(Some(_)) //TODO expect expression when expressions implemented
+          parseExpressionPartial(t).map(Some(_)) //TODO expect expression when expressions implemented
         } else Right(Option.empty)
       _ <- expectStringAndAdvance(t, ";")
     } yield encloseWithTags("returnStatement", List(Keyword("return")) ++ (optionalExpression.toList.flatten :+ Symbol(';')))
@@ -220,14 +220,14 @@ object CompilationEngine {
   def compileExpressionList(t: Tokeniser): Either[String, (List[LexicalElem], Int)] =
     def go(soFar: List[LexicalElem], expressionListCount: Int): Either[String, (List[LexicalElem], Int)] = {
       if (t.currentToken == ")") //covers case of empty list
-        Right(soFar, expressionListCount)
+        Right(encloseWithTags("expressionList", soFar), expressionListCount)
       else
         //TODO sub this out for real compile expression when expressions fully implemented
         parseExpressionPartial(t).flatMap(lexElems =>
           if (t.currentToken == ",") {
             safeAdvance(t).flatMap(_ => go(soFar ++ lexElems :+ Symbol(','), expressionListCount + 1))
           } else if (t.currentToken == ")") {
-            Right(soFar ++ lexElems, expressionListCount + 1)
+            Right(encloseWithTags("expressionList",soFar ++ lexElems), expressionListCount + 1)
           } else {
             Left(s"invalid expression list, expected , or ) but got ${t.currentToken}")
           }

@@ -22,10 +22,10 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     val returnCountString = "return count ;"
     val whileTrueDoFooDotBarString = s"while ( true ) { $doFooDotBarString }"
     val ifTrueDoFooDotBarString = s"if ( true ) { ${doFooDotBarString} }"
-    private val doFooDotBarTokens = wrapInTag(List(k("do"), id("foo"), sym('.'), id("bar"), sym('('), sym(')'), sym(';')), "doStatement")
+    private val doFooDotBarTokens = wrapInTag(List(k("do"), id("foo"), sym('.'), id("bar"), sym('('), StartElem("expressionList"), EndElem("expressionList"), sym(')'), sym(';')), "doStatement")
     val statementsToTokens: Map[String, List[LexicalElem]] = Map(
       doFooDotBarString -> doFooDotBarTokens,
-      letCountEqual5String -> wrapInTag(List(k("let"), id("count"), sym('=')) ++ wrapInTag(List(int(5)), "term") :+ sym(';'), "letStatement"),
+      letCountEqual5String -> wrapInTag(List(k("let"), id("count"), sym('=')) ++ wrapInDoubleTag("expression", "term", int(5)) :+ sym(';'), "letStatement"),
       returnCountString -> wrapInTag(List(k("return"), id("count"), sym(';')), "returnStatement"),
       whileTrueDoFooDotBarString -> wrapInTag(List(k("while")) ++ wrapBracket(wrapInDoubleTag("expression", "term", k("true"))) ++ wrapCurly(wrapInTag(doFooDotBarTokens, "statements")), "whileStatement"),
       ifTrueDoFooDotBarString -> wrapInTag(List(k("if"), Symbol('('), StartElem("expression"), StartElem("term"), k("true"), EndElem("term"), EndElem("expression"), Symbol(')')) ++ wrapCurly(wrapInTag(doFooDotBarTokens, "statements")), "ifStatement")
@@ -39,12 +39,12 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   def wrapInTag(elem: LexicalElem, statementType: String): List[LexicalElem] = wrapInTag(List(elem), statementType)
 
   val validLetStatements = Table(("statement", "expected Tokens"),
-    ("let count = count ;", wrapInTag(List(k("let"), id("count"), sym('=')) ++ wrapInTag(List(id("count")), "term") :+ sym(';'), "letStatement")),
+    ("let count = count ;", wrapInTag(List(k("let"), id("count"), sym('=')) ++ wrapInDoubleTag("expression", "term", id("count")) :+ sym(';'), "letStatement")),
     (StatementsHelper.letCountEqual5String, StatementsHelper.statementsToTokens(StatementsHelper.letCountEqual5String)),
-    ("let count = 500 ;", wrapInTag(List(k("let"), id("count"), sym('=')) ++ wrapInTag(List(int(500)), "term") :+ sym(';'), "letStatement")),
-    ("let count = true ;", wrapInTag(List(k("let"), id("count"), sym('=')) ++ wrapInTag(k("true"), "term") :+ sym(';'), "letStatement")),
-    ("let count = \"hi\" ;", wrapInTag(List(k("let"), id("count"), sym('=')) ++ wrapInTag(str("hi"), "term") :+ sym(';'), "letStatement")),
-    ("let another_count = count ;", wrapInTag(List(k("let"), id("another_count"), sym('=')) ++ wrapInTag(id("count"), "term") :+ sym(';'), "letStatement"))
+    ("let count = 500 ;", wrapInTag(List(k("let"), id("count"), sym('=')) ++ wrapInDoubleTag("expression", "term", int(500)) :+ sym(';'), "letStatement")),
+    ("let count = true ;", wrapInTag(List(k("let"), id("count"), sym('=')) ++ wrapInDoubleTag("expression", "term", k("true")) :+ sym(';'), "letStatement")),
+    ("let count = \"hi\" ;", wrapInTag(List(k("let"), id("count"), sym('=')) ++ wrapInDoubleTag("expression", "term", str("hi")) :+ sym(';'), "letStatement")),
+    ("let another_count = count ;", wrapInTag(List(k("let"), id("another_count"), sym('=')) ++ wrapInDoubleTag("expression", "term", id("count")) :+ sym(';'), "letStatement"))
   )
 
   //TODO more complex
@@ -95,11 +95,11 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
     val validDoStatements = Table(
       ("statement", "expectedTokens"),
-      ("do subroutineName ( ) ;", wrapInTag(List(k("do"), id("subroutineName"), sym('('), sym(')'), sym(';')), "doStatement")),
+      ("do subroutineName ( ) ;", wrapInTag(List(k("do"), id("subroutineName"), sym('('), StartElem("expressionList"), EndElem("expressionList"), sym(')'), sym(';')), "doStatement")),
       (doFooDotBarString, statementsToTokens(doFooDotBarString)),
-      ("do subroutineName ( 5 ) ;", wrapInTag(List(k("do"), id("subroutineName"), sym('(')) ++ wrapInTag(wrapInTag(int(5), "term"), "expression") ++ List(sym(')'), sym(';')), "doStatement")),
-      ("do subroutineName ( 5 , 4 ) ;", wrapInTag(List(k("do"), id("subroutineName"), sym('(')) ++ wrapInTag(wrapInTag(int(5), "term"), "expression") ++ List(sym(',')) ++ wrapInDoubleTag("expression", "term", int(4)) ++ List(sym(')'), sym(';')), "doStatement")),
-      ("do foo . bar ( \"hi\" , myVar ) ;", wrapInTag(List(k("do"), id("foo"), sym('.'), id("bar"), sym('(')) ++ wrapInDoubleTag("expression", "term", str("hi")) ++ List(sym(',')) ++  wrapInDoubleTag("expression", "term", id("myVar")) ++ List(sym(')'), sym(';')), "doStatement"))
+      ("do subroutineName ( 5 ) ;", wrapInTag(List(k("do"), id("subroutineName"), sym('(')) ++ wrapInTag(wrapInDoubleTag("expression", "term", int(5)), "expressionList") ++ List(sym(')'), sym(';')), "doStatement")),
+      ("do subroutineName ( 5 , 4 ) ;", wrapInTag(List(k("do"), id("subroutineName"), sym('(')) ++ wrapInTag(wrapInDoubleTag("expression", "term", int(5)) ++ List(sym(',')) ++ wrapInDoubleTag("expression", "term", int(4)), "expressionList") ++ List(sym(')'), sym(';')), "doStatement")),
+      ("do foo . bar ( \"hi\" , myVar ) ;", wrapInTag(List(k("do"), id("foo"), sym('.'), id("bar"), sym('(')) ++ wrapInTag(wrapInDoubleTag("expression", "term", str("hi")) ++ List(sym(',')) ++ wrapInDoubleTag("expression", "term", id("myVar")), "expressionList")  ++ List(sym(')'), sym(';')), "doStatement"))
     )
     //TODO more complex expression lists (although this should be handled by implementing expressions
 
@@ -193,7 +193,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     val validReturns = Table(
       ("statement", "expectedTokens"),
       ("return ;", wrapInTag(List(k("return"), sym(';')), "returnStatement")),
-      ("return 5 ;", wrapInTag(List(k("return"), StartElem("term"), int(5), EndElem("term"), sym(';')), "returnStatement"))
+      ("return 5 ;", wrapInTag(List(k("return"), StartElem("expression"), StartElem("term"), int(5), EndElem("term"), EndElem("expression"), sym(';')), "returnStatement"))
       //TODO more complex expressions (to be handled once expressions fully implemented)
     )
 
@@ -282,7 +282,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   "compileParameterList" should "compile a valid parameter list" in {
     val validParameterLists = Table(
       ("validStatement", "expectedTokens"),
-      (")", List()),
+      (")", wrapInTag(List(), "parameterList")),
       ("boolean myBool", wrapInTag(List(k("boolean"), id("myBool")), "parameterList")),
       ("boolean myBool , int myInt , className myClass , char myChar", wrapInTag(List(k("boolean"), id("myBool"), sym(','), k("int"), id("myInt"), sym(','), id("className"), id("myClass"), sym(','), k("char"), id("myChar")), "parameterList"))
     )
@@ -315,9 +315,9 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     val charDeclarations = "var char charA , charB ;"
     val charDeclarationTokens = List(StartElem("varDec"), k("var"), k("char"), id("charA"), sym(','), id("charB"), sym(';'), EndElem("varDec"))
     val letFooEqualStatement = "let foo = myBool ;"
-    val letFooEqualTokens = wrapInTag(List(k("let"), id("foo"), sym('='), StartElem("term"), id("myBool"), EndElem("term"), sym(';')), "letStatement")
+    val letFooEqualTokens = wrapInTag(List(k("let"), id("foo"), sym('='), StartElem("expression"), StartElem("term"), id("myBool"), EndElem("term"), EndElem("expression"), sym(';')), "letStatement")
     val returnStatement = "return foo ;"
-    val returnTokens = wrapInTag(List(k("return"), StartElem("term"), id("foo"), EndElem("term"), sym(';')), "returnStatement")
+    val returnTokens = wrapInTag(List(k("return"), StartElem("expression"), StartElem("term"), id("foo"), EndElem("term"), EndElem("expression"), sym(';')), "returnStatement")
     val validSubroutineBodies = Table(
       ("validStatement", "expectedTokens"),
       (
@@ -342,11 +342,11 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   object SubroutineHelper {
     val functionDec = "function int returnV1 ( int v1 , int v2 ) { return v1 ; }"
-    val functionDecTokens = wrapInTag(List(k("function"), k("int"), id("returnV1"), sym('('), StartElem("parameterList"), k("int"), id("v1"), sym(','), k("int"), id("v2"), EndElem("parameterList"), sym(')'), StartElem("subroutineBody"), sym('{'), StartElem("statements"), StartElem("returnStatement"), k("return"), StartElem("term"), id("v1"), EndElem("term"), sym(';'), EndElem("returnStatement"), EndElem("statements"), sym('}'), EndElem("subroutineBody")), "subroutineDec")
+    val functionDecTokens = wrapInTag(List(k("function"), k("int"), id("returnV1"), sym('('), StartElem("parameterList"), k("int"), id("v1"), sym(','), k("int"), id("v2"), EndElem("parameterList"), sym(')'), StartElem("subroutineBody"), sym('{'), StartElem("statements"), StartElem("returnStatement"), k("return"), StartElem("expression"), StartElem("term"), id("v1"), EndElem("term"), EndElem("expression"), sym(';'), EndElem("returnStatement"), EndElem("statements"), sym('}'), EndElem("subroutineBody")), "subroutineDec")
     val methodDec = "method void returnTrue ( String string , int i ) { return true ; }"
-    val methodDecTokens = wrapInTag(List(k("method"), k("void"), id("returnTrue"), sym('('), StartElem("parameterList"), id("String"), id("string"), sym(','), k("int"), id("i"), EndElem("parameterList"), sym(')'), StartElem("subroutineBody"), sym('{'), StartElem("statements"), StartElem("returnStatement"), k("return"), StartElem("term"), k("true"), EndElem("term"), sym(';'), EndElem("returnStatement"), EndElem("statements"), sym('}'), EndElem("subroutineBody")), "subroutineDec")
+    val methodDecTokens = wrapInTag(List(k("method"), k("void"), id("returnTrue"), sym('('), StartElem("parameterList"), id("String"), id("string"), sym(','), k("int"), id("i"), EndElem("parameterList"), sym(')'), StartElem("subroutineBody"), sym('{'), StartElem("statements"), StartElem("returnStatement"), k("return"), StartElem("expression"), StartElem("term"), k("true"), EndElem("term"), EndElem("expression"), sym(';'), EndElem("returnStatement"), EndElem("statements"), sym('}'), EndElem("subroutineBody")), "subroutineDec")
     val constructorDec = "constructor myClass create ( String string ) { return myClassInstance ; }"
-    val constructorTokens = wrapInTag(List(k("constructor"), id("myClass"), id("create"), sym('('), StartElem("parameterList"), id("String"), id("string"), EndElem("parameterList"), sym(')'), StartElem("subroutineBody"), sym('{'), StartElem("statements"), StartElem("returnStatement"), k("return"), StartElem("term"), id("myClassInstance"), EndElem("term"), sym(';'), EndElem("returnStatement"), EndElem("statements"), sym('}'), EndElem("subroutineBody")), "subroutineDec")
+    val constructorTokens = wrapInTag(List(k("constructor"), id("myClass"), id("create"), sym('('), StartElem("parameterList"), id("String"), id("string"), EndElem("parameterList"), sym(')'), StartElem("subroutineBody"), sym('{'), StartElem("statements"), StartElem("returnStatement"), k("return"), StartElem("expression"), StartElem("term"), id("myClassInstance"), EndElem("term"), EndElem("expression"), sym(';'), EndElem("returnStatement"), EndElem("statements"), sym('}'), EndElem("subroutineBody")), "subroutineDec")
   }
 
   "compileSubroutine" should "compile a valid subroutine" in {
@@ -378,7 +378,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
       s"class myClass { $classVarDecs $functionDec $methodDec }"
 
     val tokeniser = testTokeniser(validClassString)
-    CompilationEngine.compileClass(tokeniser) shouldBe Right(List(k("class"), id("myClass")) ++ wrapCurly(classVarDecTokens ++ SubroutineHelper.functionDecTokens ++ SubroutineHelper.methodDecTokens))
+    CompilationEngine.compileClass(tokeniser) shouldBe Right(wrapInTag(List(k("class"), id("myClass")) ++ wrapCurly(classVarDecTokens ++ SubroutineHelper.functionDecTokens ++ SubroutineHelper.methodDecTokens), "class"))
   }
 
 

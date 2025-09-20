@@ -9,51 +9,38 @@ class SyntaxAnalyserIntegrationTest extends AnyFlatSpec with Matchers with Befor
 
   override
   def beforeEach(): Unit = {
-    Files.deleteIfExists(Paths.get("./src/test/resources/1/DoAndLetProg.xml"))
-    Files.deleteIfExists(Paths.get("./src/test/resources/2/SimpleProg.xml"))
-    Files.deleteIfExists(Paths.get("./src/test/resources/3/ReducedMain.xml"))
-    Files.deleteIfExists(Paths.get("./src/test/resources/3/Main.xml"))
+    Files.deleteIfExists(Paths.get("./src/test/resources/1/Square.xml"))
+    Files.deleteIfExists(Paths.get("./src/test/resources/1/Main.xml"))
+    Files.deleteIfExists(Paths.get("./src/test/resources/1/SquareGame.xml"))
   }
 
-  "main" should "produce the expected output file for a simple set of statements" in {
-    pending
-    Main.main(Array("./src/test/resources/1/DoAndLetProg.jack"))
+  "main" should "produce the expected output" in {
+    Main.main(Array("./src/test/resources/1/Square.jack"))
 
-    val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/1/ExpectedDoAndLetProg.xml")
-    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/1/DoAndLetProg.xml")
+    val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/1/ExpectedSquare.xml")
+    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/1/ExpectedSquare.xml")
 
     actualOutput shouldBe expectedOutput
   }
 
-  it should "produce the expected output file for a simple programme" in {
-    pending
-    Main.main(Array("./src/test/resources/2/SimpleProg.jack"))
+  it should "work on all files" in {
+    Main.main(Array("./src/test/resources/1/Main.jack"))
 
-    val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/2/ExpectedSimpleProg.xml")
-    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/2/SimpleProg.xml")
-
-    actualOutput shouldBe expectedOutput
-  }
-
-  it should "produce the expected output file for a class" in {
-    pending
-    Main.main(Array("./src/test/resources/3/ReducedMain.jack"))
-
-    val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/3/ExpectedReducedMain.xml")
-    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/3/ReducedMain.xml")
+    val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/1/ExpectedMain.xml")
+    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/1/ExpectedMain.xml")
 
     actualOutput shouldBe expectedOutput
   }
 
-  it should "produce the expected output file for a full class" in {
-    pending
-    Main.main(Array("./src/test/resources/4/Main.jack"))
+  it should "work on all files 2" in {
+    Main.main(Array("./src/test/resources/1/SquareGame.jack"))
 
-    val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/4/ExpectedMain.xml")
-    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/4/Main.xml")
+    val expectedOutput = readLinesWithoutWhitespace("./src/test/resources/1/ExpectedSquareGame.xml")
+    val actualOutput = readLinesWithoutWhitespace("./src/test/resources/1/SquareGame.xml")
 
     actualOutput shouldBe expectedOutput
   }
+
 
   private def readLinesWithoutWhitespace(input: String): List[String] =
     readFile(input).map(_.replaceAll(" ", "").replaceAll("\t", ""))
