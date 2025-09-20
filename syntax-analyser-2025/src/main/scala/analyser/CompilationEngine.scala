@@ -13,7 +13,7 @@ object CompilationEngine {
       _ <- expectStringAndAdvance(t, "=")
       term <- expectTerm(t)
       _ <- expectStringAndAdvance(t, ";")
-    } yield encloseWithTags("letStatement", List(Keyword("let"), varName, Symbol('='), term, Symbol(';')))
+    } yield encloseWithTags("letStatement", List(Keyword("let"), varName, Symbol('=')) ++ term ++ List(Symbol(';')))
   }
 
   def compileClass(t: Tokeniser): MaybeLexicalElements = {
@@ -160,7 +160,7 @@ object CompilationEngine {
             .map(statementWithCurlies => Keyword("else") +: statementWithCurlies)
         else
           Right(List())
-    } yield encloseWithTags("ifStatement", List(Keyword("if"), Symbol('('), exp, Symbol(')')) ++ statementsWithCurlyBrackets ++ optionalElse)
+    } yield encloseWithTags("ifStatement", List(Keyword("if"), Symbol('(')) ++ exp ++ List(Symbol(')')) ++ statementsWithCurlyBrackets ++ optionalElse)
 
   private def expectStatementsEnclosedByCurlyBrackets(t: Tokeniser): MaybeLexicalElements =
     for {
@@ -176,7 +176,7 @@ object CompilationEngine {
       exp <- parseExpressionPartial(t)
       _ <- expectStringAndAdvance(t, ")")
       statementsWithCurlies <- expectStatementsEnclosedByCurlyBrackets(t)
-    } yield encloseWithTags("whileStatement", List(Keyword("while"), Symbol('('), exp, Symbol(')')) ++ statementsWithCurlies)
+    } yield encloseWithTags("whileStatement", List(Keyword("while"), Symbol('(')) ++ exp ++ List(Symbol(')')) ++ statementsWithCurlies)
 
   def compileDo(t: Tokeniser): MaybeLexicalElements = {
     for {
@@ -212,7 +212,7 @@ object CompilationEngine {
           expectTerm(t).map(Some(_)) //TODO expect expression when expressions implemented
         } else Right(Option.empty)
       _ <- expectStringAndAdvance(t, ";")
-    } yield encloseWithTags("returnStatement", List(Keyword("return")) ++ (optionalExpression.toList :+ Symbol(';')))
+    } yield encloseWithTags("returnStatement", List(Keyword("return")) ++ (optionalExpression.toList.flatten :+ Symbol(';')))
 
   //TODO part 2
   def compileExpression(t: Tokeniser): MaybeLexicalElements = ???
@@ -223,11 +223,11 @@ object CompilationEngine {
         Right(soFar, expressionListCount)
       else
         //TODO sub this out for real compile expression when expressions fully implemented
-        parseExpressionPartial(t).flatMap(lexElem =>
+        parseExpressionPartial(t).flatMap(lexElems =>
           if (t.currentToken == ",") {
-            safeAdvance(t).flatMap(_ => go(soFar ++ List(lexElem, Symbol(',')), expressionListCount + 1))
+            safeAdvance(t).flatMap(_ => go(soFar ++ lexElems :+ Symbol(','), expressionListCount + 1))
           } else if (t.currentToken == ")") {
-            Right(soFar :+ lexElem, expressionListCount + 1)
+            Right(soFar ++ lexElems, expressionListCount + 1)
           } else {
             Left(s"invalid expression list, expected , or ) but got ${t.currentToken}")
           }
@@ -239,13 +239,13 @@ object CompilationEngine {
   //TODO
   def compileTerm(t: Tokeniser): MaybeLexicalElements = ???
 
-  private def expectTerm(t: Tokeniser): Either[String, LexicalElem] =
+  private def expectTerm(t: Tokeniser): MaybeLexicalElements =
     val s = t.currentToken
     TokenTypes.tokenType(s) match
-      case TokenTypes.Identifier => Right(Identifier(s)).tap(_ => t.advance())
-      case TokenTypes.IntConst => Right(IntConst(s.toInt)).tap(_ => t.advance())
-      case TokenTypes.Keyword if TokenTypes.KEYWORD_CONSTANTS.contains(s) => Right(Keyword(s)).tap(_ => t.advance())
-      case TokenTypes.StringConst => Right(stringConstFromQuotedString(s)).tap(_ => t.advance())
+      case TokenTypes.Identifier => Right(encloseWithTags("term", List(Identifier(s)))).tap(_ => t.advance())
+      case TokenTypes.IntConst => Right(encloseWithTags("term", List(IntConst(s.toInt)))).tap(_ => t.advance())
+      case TokenTypes.Keyword if TokenTypes.KEYWORD_CONSTANTS.contains(s) => Right(encloseWithTags("term", List(Keyword(s)))).tap(_ => t.advance())
+      case TokenTypes.StringConst => Right(encloseWithTags("term", List(stringConstFromQuotedString(s)))).tap(_ => t.advance())
       case otherTokenType => Left(s"expected valid term to be found in string $s but got $otherTokenType")
 
   private def expectVarAndAdvance(t: Tokeniser): Either[String, LexicalElem] =
