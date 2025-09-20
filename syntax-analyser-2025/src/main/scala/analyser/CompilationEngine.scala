@@ -55,10 +55,23 @@ object CompilationEngine {
           }
       }
     }
-    
 
-  //TODO
-  def compileSubroutineBody(t: Tokeniser): MaybeLexicalElements = ???
+
+  def compileSubroutineBody(t: Tokeniser): MaybeLexicalElements =
+    for {
+      _ <- expectStringAndAdvance(t, "{")
+      varDecs <- compileVarDecs(t, List()) //TODO 0 or more
+      statements <- compileStatements(t, "}", List())
+      _ <- expectStringAndAdvance(t, "}")
+    } yield Symbol('{') +: (varDecs ++ statements :+ Symbol('}'))
+
+  private def compileVarDecs(t: Tokeniser, soFar: List[LexicalElem]): MaybeLexicalElements =
+    if (t.currentToken == "var") {
+      compileVarDec(t).flatMap(newElems => compileVarDecs(t, soFar ++ newElems))
+    } else {
+      Right(soFar)
+    }
+
 
   def compileVarDec(t: Tokeniser): MaybeLexicalElements =
     for {
@@ -71,30 +84,22 @@ object CompilationEngine {
   //TODO write tests
   @tailrec
   def compileStatements(t: Tokeniser, terminatingString: String, soFar: List[LexicalElem]): MaybeLexicalElements = {
-    val (result: MaybeLexicalElements, continue: Boolean) = t.currentToken match {
-      case "let" => (compileLet(t), true)
-      case "do" => (compileDo(t), true)
-      case "while" => (compileWhile(t), true)
-      case "if" => (compileIf(t), true)
-      case "return" => (compileReturn(t), true)
-      case s if s == terminatingString => (Right(soFar), false)
-      case otherString =>
-        val result: MaybeLexicalElements = Left(s"uh oh, tried to compile a statement starting with ${otherString}")
-        (result, false)
-    }
-
-    result match {
-      case Right(allLexElems) if !continue => Right(allLexElems)
-      case Left(_) => result
-      case Right(newLexElems) =>
-        t.currentToken match {
-          case s if s == terminatingString => Right(soFar ++ newLexElems)
-          case otherString if otherString != "," => Left(s"uh oh, expected terminating char $terminatingString or comma, got ${otherString}")
-          case "," =>
-            safeAdvance(t) match {
-              case Left(err) => Left(err)
-              case Right(_) => compileStatements(t, terminatingString, soFar ++ newLexElems :+ Symbol(','))
-            }
+    val validStatementStarts = List("let", "do", "while", "if", "return")
+    t.currentToken match {
+      case s if s == terminatingString => Right(soFar)
+      case nonStatementString if !validStatementStarts.contains(nonStatementString) =>
+        Left(s"uh oh, tried to compile a statement starting with ${nonStatementString}")
+      case statementKeyword if validStatementStarts.contains(statementKeyword) =>
+        val newKeywords = statementKeyword match {
+          case "let" => compileLet(t)
+          case "do" => compileDo(t)
+          case "while" => compileWhile(t)
+          case "if" => compileIf(t)
+          case _ => compileReturn(t)
+        }
+        newKeywords match {
+          case Left(err) => Left(err)
+          case Right(newElems) => compileStatements(t, terminatingString, soFar ++ newElems)
         }
     }
   }

@@ -110,7 +110,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
       ("validStatements", "expectedTokens"),
       (s"while ( true ) { ${doFooDotBarString} }", (k("while") +: wrapBracket(List(k("true")))) ++ wrapCurly(doFooDotBarTokens)),
       (s"while ( true ) { }", (k("while") +: wrapBracket(List(k("true")))) ++ wrapCurly(List())),
-      (s"while ( true ) { $doFooDotBarString , $doFooDotBarString }", (k("while") +: wrapBracket(List(k("true")))) ++ wrapCurly(doFooDotBarTokens ++ List(Symbol(',')) ++ doFooDotBarTokens)),
+      (s"while ( true ) { $doFooDotBarString $doFooDotBarString }", (k("while") +: wrapBracket(List(k("true")))) ++ wrapCurly(doFooDotBarTokens ++ doFooDotBarTokens)),
       //TODO more whiles - not super necessary though
     )
 
@@ -280,6 +280,37 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
       val closingChar = ")"
       val t = testTokeniser(invalidParameterListString ++ s"$closingChar)")
       CompilationEngine.compileParameterList(t, closingChar).isLeft shouldBe true
+    }
+  }
+
+  "compileSubroutineBody" should "compile a valid subroutine body" in {
+    val myBoolDeclaration = "var boolean myBool ;"
+    val myBoolDeclarationTokens = List(k("var"), k("boolean"), id("myBool"), sym(';'))
+    val charDeclarations = "var char charA , charB ;"
+    val charDeclarationTokens =  List(k("var"), k("char"), id("charA"), sym(','), id("charB"), sym(';'))
+    val letFooEqualStatement = "let foo = myBool ;"
+    val letFooEqualTokens = List(k("let"), id("foo"), sym('='), id("myBool"), sym(';'))
+    val returnStatement = "return foo ;"
+    val returnTokens = List(k("return"), id("foo"), sym(';'))
+    val validSubroutineBodies = Table(
+      ("validStatement", "expectedTokens"),
+      (
+        s"{ $myBoolDeclaration $letFooEqualStatement }",
+        wrapCurly(myBoolDeclarationTokens ++ letFooEqualTokens)
+      ),
+      (
+        s"{ $myBoolDeclaration $charDeclarations $letFooEqualStatement }",
+        wrapCurly(myBoolDeclarationTokens ++ charDeclarationTokens ++ letFooEqualTokens)
+      ),
+      (
+        s"{ $letFooEqualStatement $returnStatement }",
+        wrapCurly(letFooEqualTokens ++ returnTokens)
+      )
+    )
+
+    forAll(validSubroutineBodies){ case (validStatement, expectedTokens) =>
+      val tokeniser = testTokeniser(validStatement ++ " rest of programme")
+      CompilationEngine.compileSubroutineBody(tokeniser) shouldBe Right(expectedTokens)
     }
   }
 
