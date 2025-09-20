@@ -27,8 +27,8 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
       doFooDotBarString -> doFooDotBarTokens,
       letCountEqual5String -> wrapInTag(List(k("let"), id("count"), sym('=')) ++ wrapInTag(List(int(5)), "term") :+ sym(';'), "letStatement"),
       returnCountString -> wrapInTag(List(k("return"), id("count"), sym(';')), "returnStatement"),
-      whileTrueDoFooDotBarString -> wrapInTag(List(k("while")) ++ wrapBracket(wrapInTag(List(k("true")), "term")) ++ wrapCurly(wrapInTag(doFooDotBarTokens, "statements")), "whileStatement"),
-      ifTrueDoFooDotBarString -> wrapInTag(List(k("if"), Symbol('('), StartElem("term"), k("true"), EndElem("term"), Symbol(')')) ++ wrapCurly(wrapInTag(doFooDotBarTokens, "statements")), "ifStatement")
+      whileTrueDoFooDotBarString -> wrapInTag(List(k("while")) ++ wrapBracket(wrapInDoubleTag("expression", "term", k("true"))) ++ wrapCurly(wrapInTag(doFooDotBarTokens, "statements")), "whileStatement"),
+      ifTrueDoFooDotBarString -> wrapInTag(List(k("if"), Symbol('('), StartElem("expression"), StartElem("term"), k("true"), EndElem("term"), EndElem("expression"), Symbol(')')) ++ wrapCurly(wrapInTag(doFooDotBarTokens, "statements")), "ifStatement")
     )
 
   }
@@ -85,6 +85,9 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     }
   }
 
+  private def wrapInDoubleTag(outer: String, inner: String, elems: LexicalElem*): List[LexicalElem] =
+    wrapInTag(wrapInTag(elems.toList, inner), outer)
+
 
   "compileDo" should "compile a do statement" in {
     import StatementsHelper.statementsToTokens
@@ -94,9 +97,9 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
       ("statement", "expectedTokens"),
       ("do subroutineName ( ) ;", wrapInTag(List(k("do"), id("subroutineName"), sym('('), sym(')'), sym(';')), "doStatement")),
       (doFooDotBarString, statementsToTokens(doFooDotBarString)),
-      ("do subroutineName ( 5 ) ;", wrapInTag(List(k("do"), id("subroutineName"), sym('(')) ++ wrapInTag(int(5), "term") ++ List(sym(')'), sym(';')), "doStatement")),
-      ("do subroutineName ( 5 , 4 ) ;", wrapInTag(List(k("do"), id("subroutineName"), sym('(')) ++ wrapInTag(int(5), "term") ++ List(sym(',')) ++ wrapInTag(int(4), "term") ++ List(sym(')'), sym(';')), "doStatement")),
-      ("do foo . bar ( \"hi\" , myVar ) ;", wrapInTag(List(k("do"), id("foo"), sym('.'), id("bar"), sym('(')) ++ wrapInTag(str("hi"), "term") ++ List(sym(',')) ++  wrapInTag(id("myVar"), "term") ++ List(sym(')'), sym(';')), "doStatement"))
+      ("do subroutineName ( 5 ) ;", wrapInTag(List(k("do"), id("subroutineName"), sym('(')) ++ wrapInTag(wrapInTag(int(5), "term"), "expression") ++ List(sym(')'), sym(';')), "doStatement")),
+      ("do subroutineName ( 5 , 4 ) ;", wrapInTag(List(k("do"), id("subroutineName"), sym('(')) ++ wrapInTag(wrapInTag(int(5), "term"), "expression") ++ List(sym(',')) ++ wrapInDoubleTag("expression", "term", int(4)) ++ List(sym(')'), sym(';')), "doStatement")),
+      ("do foo . bar ( \"hi\" , myVar ) ;", wrapInTag(List(k("do"), id("foo"), sym('.'), id("bar"), sym('(')) ++ wrapInDoubleTag("expression", "term", str("hi")) ++ List(sym(',')) ++  wrapInDoubleTag("expression", "term", id("myVar")) ++ List(sym(')'), sym(';')), "doStatement"))
     )
     //TODO more complex expression lists (although this should be handled by implementing expressions
 
@@ -130,8 +133,8 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     val validWhileStatements = Table(
       ("validStatements", "expectedTokens"),
       (whileTrueDoFooDotBarString, statementsToTokens(whileTrueDoFooDotBarString)),
-      (s"while ( true ) { }", wrapInTag((k("while") +: wrapBracket(wrapInTag(List(k("true")), "term"))) ++ wrapCurly(wrapInTag(List(), "statements")), "whileStatement")),
-      (s"while ( true ) { $doFooDotBarString $doFooDotBarString }", wrapInTag((k("while") +: wrapBracket(wrapInTag(k("true"), "term"))) ++ wrapCurly(wrapInTag(doFooDotBarTokens ++ doFooDotBarTokens, "statements")), "whileStatement"))
+      (s"while ( true ) { }", wrapInTag((k("while") +: wrapBracket(wrapInDoubleTag("expression", "term", k("true")))) ++ wrapCurly(wrapInTag(List(), "statements")), "whileStatement")),
+      (s"while ( true ) { $doFooDotBarString $doFooDotBarString }", wrapInTag((k("while") +: wrapBracket(wrapInDoubleTag("expression", "term", k("true")))) ++ wrapCurly(wrapInTag(doFooDotBarTokens ++ doFooDotBarTokens, "statements")), "whileStatement"))
       //TODO more whiles - not super necessary though
     )
 
@@ -161,7 +164,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     val validIfStatements = Table(
       ("validStatement", "expectedTokens"),
       (ifTrueDoFooDotBarString, statementsToTokens(ifTrueDoFooDotBarString)),
-      (s"if ( true ) { $doFooDotBarString } else { ${doFooDotBarString} }", wrapInTag(List(k("if"), Symbol('('), StartElem("term"), k("true"), EndElem("term"), Symbol(')')) ++ wrapCurly(wrapInTag(statementsToTokens(doFooDotBarString), "statements")) ++ List(k("else")) ++ wrapCurly(wrapInTag(statementsToTokens(doFooDotBarString), "statements")), "ifStatement")),
+      (s"if ( true ) { $doFooDotBarString } else { ${doFooDotBarString} }", wrapInTag(List(k("if"), Symbol('('), StartElem("expression"), StartElem("term"), k("true"), EndElem("term"), EndElem("expression"), Symbol(')')) ++ wrapCurly(wrapInTag(statementsToTokens(doFooDotBarString), "statements")) ++ List(k("else")) ++ wrapCurly(wrapInTag(statementsToTokens(doFooDotBarString), "statements")), "ifStatement")),
       //TODO more - not super necessary
     )
 

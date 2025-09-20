@@ -202,7 +202,7 @@ object CompilationEngine {
     } yield v1 +: (optionalDotCall ++ (Symbol('(') +: expressionList :+ Symbol(')')))
 
   //TODO: get rid
-  private def parseExpressionPartial(t: Tokeniser) = expectTerm(t)
+  private def parseExpressionPartial(t: Tokeniser) = expectTerm(t).map(elems => encloseWithTags("expression", elems))
 
   def compileReturn(t: Tokeniser): MaybeLexicalElements =
     for {
