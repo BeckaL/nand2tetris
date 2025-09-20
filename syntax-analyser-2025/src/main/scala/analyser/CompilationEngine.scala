@@ -36,14 +36,17 @@ object CompilationEngine {
   }
 
   @tailrec
-  private def compileZeroOrMore(t: Tokeniser, startTokens: List[String], transformer: Tokeniser => MaybeLexicalElements, soFar: List[LexicalElem] = List()): MaybeLexicalElements =
+  private def compileZeroOrMore(t: Tokeniser, startTokens: List[String], transformer: Tokeniser => MaybeLexicalElements, soFar: List[LexicalElem] = List(), enclosingTag: Option[String] = None): MaybeLexicalElements =
     if (!startTokens.contains(t.currentToken)) {
-      Right(soFar)
+      enclosingTag match {
+        case Some(tag) => Right(encloseWithTags(tag, soFar))
+        case None => Right(soFar)
+      }
     }  else {
       val result = transformer(t)
       result match {
         case Left(err) => Left(err)
-        case Right(newElems) => compileZeroOrMore(t, startTokens, transformer, soFar ++ newElems)
+        case Right(newElems) => compileZeroOrMore(t, startTokens, transformer, soFar ++ newElems, enclosingTag)
       }
     }
 
@@ -56,7 +59,6 @@ object CompilationEngine {
     } yield encloseWithTags("classVarDec", List(staticOrField, varType) ++ varNameLexElems ++ List(Symbol(';')))
 
 
-  //TODO
   def compileSubroutine(t: Tokeniser): MaybeLexicalElements = {
     for {
       subroutineType <- expectOneOfAndAdvance(t, List("function", "method", "constructor"), Keyword)
@@ -66,7 +68,7 @@ object CompilationEngine {
       paramList <- compileParameterList(t, ")", List())
       _ <- expectStringAndAdvance(t, ")")
       subroutineBody <- compileSubroutineBody(t)
-    } yield List(subroutineType, returnType, subroutineName, Symbol('(')) ++ (paramList :+ Symbol(')')) ++ subroutineBody
+    } yield encloseWithTags("subroutineDec", List(subroutineType, returnType, subroutineName, Symbol('(')) ++ (paramList :+ Symbol(')')) ++ subroutineBody)
   }
 
   @tailrec
@@ -101,7 +103,7 @@ object CompilationEngine {
       varDecs <- compileVarDecs(t, List()) //TODO 0 or more
       statements <- compileStatements(t, "}", List())
       _ <- expectStringAndAdvance(t, "}")
-    } yield Symbol('{') +: (varDecs ++ statements :+ Symbol('}'))
+    } yield encloseWithTags("subroutineBody", Symbol('{') +: (varDecs ++ statements :+ Symbol('}')))
 
   private def compileVarDecs(t: Tokeniser, soFar: List[LexicalElem]): MaybeLexicalElements =
     if (t.currentToken == "var") {
