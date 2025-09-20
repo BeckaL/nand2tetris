@@ -105,6 +105,15 @@ case class ZeroOrMoreRule(startTokens: List[String], transformer: Tokeniser => M
     go(List())
 }
 
+case class BranchingRule(ruleMap: Map[String, Tokeniser => MaybeLexicalElements]) extends CompilationRule {
+  override def compile(t: Tokeniser) = {
+    ruleMap.get(t.currentToken) match {
+      case Some(transformer) => transformer(t)
+      case None => Left(s"uh oh tried to perform branching rule for possibilities ${ruleMap.keys} with token ${t.currentToken}")
+    }
+  }
+}
+
 
 def compileWithRules(t: Tokeniser, rules: List[CompilationRule], enclosingElem: Option[String]): MaybeLexicalElements =
   @tailrec

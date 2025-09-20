@@ -27,8 +27,6 @@ object CompilationEngine {
     compileWithRules(t, rules, Some("class"))
   }
 
-
-
   def compileClassVarDec(t: Tokeniser): MaybeLexicalElements =
     val rules =
       List(KeywordMatchingOneOfRule(List("static", "field")), TypeRule(), CustomRule(parseNVars(_)), semicolon)
@@ -84,27 +82,10 @@ object CompilationEngine {
     compileWithRules(t, rules, Some("varDec"))
 
   //TODO write tests
-  @tailrec
-  def compileStatements(t: Tokeniser, terminatingString: String, soFar: List[LexicalElem] = List()): MaybeLexicalElements = {
-    val validStatementStarts = List("let", "do", "while", "if", "return")
-    t.currentToken match {
-      case s if s == terminatingString => Right(encloseWithTags("statements", soFar))
-      case nonStatementString if !validStatementStarts.contains(nonStatementString) =>
-        Left(s"uh oh, tried to compile a statement starting with ${nonStatementString}")
-      case statementKeyword if validStatementStarts.contains(statementKeyword) =>
-        val newKeywords = statementKeyword match {
-          case "let" => compileLet(t)
-          case "do" => compileDo(t)
-          case "while" => compileWhile(t)
-          case "if" => compileIf(t)
-          case _ => compileReturn(t)
-        }
-        newKeywords match {
-          case Left(err) => Left(err)
-          case Right(newElems) => compileStatements(t, terminatingString, soFar ++ newElems)
-        }
-    }
-  }
+  def compileStatements(t: Tokeniser, terminatingString: String, soFar: List[LexicalElem] = List()): MaybeLexicalElements =
+    val ruleMap =
+      Map("let" -> compileLet, "do" -> compileDo, "while" -> compileWhile, "if" -> compileIf, "return" -> compileReturn)
+    compileWithRules(t, List(ZeroOrMoreRule(ruleMap.keys.toList, BranchingRule(ruleMap).compile)), Some("statements"))
 
   def compileIf(t: Tokeniser): MaybeLexicalElements =
     val rules = List(
