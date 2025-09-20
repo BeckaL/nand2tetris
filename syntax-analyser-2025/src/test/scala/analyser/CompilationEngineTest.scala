@@ -215,14 +215,14 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     }
   }
 
-  val validVarDecs = (varDecTypeString: String) => Table(
+  val validVarDecs = (varDecTypeString: String, enclosingElem: String) => Table(
     ("statementString", "expectedTokens"),
-    (s"$varDecTypeString boolean myBool ;", List(k(varDecTypeString), k("boolean"), id("myBool"), sym(';'))),
-    (s"$varDecTypeString boolean myBool , mySecondBool ;", List(k(varDecTypeString), k("boolean"), id("myBool"), sym(','), id("mySecondBool"), sym(';'))),
-    (s"$varDecTypeString boolean myBool , mySecondBool , myThirdBool ;", List(k(varDecTypeString), k("boolean"), id("myBool"), sym(','), id("mySecondBool"), sym(','), id("myThirdBool"), sym(';'))),
-    (s"$varDecTypeString int myNumber ;", List(k(varDecTypeString), k("int"), id("myNumber"), sym(';'))),
-    (s"$varDecTypeString char myChar ;", List(k(varDecTypeString), k("char"), id("myChar"), sym(';'))),
-    (s"$varDecTypeString myClass myClassInstance ;", List(k(varDecTypeString), id("myClass"), id("myClassInstance"), sym(';')))
+    (s"$varDecTypeString boolean myBool ;", List(StartElem(enclosingElem), k(varDecTypeString), k("boolean"), id("myBool"), sym(';'), EndElem(enclosingElem))),
+    (s"$varDecTypeString boolean myBool , mySecondBool ;", List(StartElem(enclosingElem), k(varDecTypeString), k("boolean"), id("myBool"), sym(','), id("mySecondBool"), sym(';'), EndElem(enclosingElem))),
+    (s"$varDecTypeString boolean myBool , mySecondBool , myThirdBool ;", List(StartElem(enclosingElem), k(varDecTypeString), k("boolean"), id("myBool"), sym(','), id("mySecondBool"), sym(','), id("myThirdBool"), sym(';'), EndElem(enclosingElem))),
+    (s"$varDecTypeString int myNumber ;", List(StartElem(enclosingElem), k(varDecTypeString), k("int"), id("myNumber"), sym(';'), EndElem(enclosingElem))),
+    (s"$varDecTypeString char myChar ;", List(StartElem(enclosingElem), k(varDecTypeString), k("char"), id("myChar"), sym(';'), EndElem(enclosingElem))),
+    (s"$varDecTypeString myClass myClassInstance ;", List(StartElem(enclosingElem), k(varDecTypeString), id("myClass"), id("myClassInstance"), sym(';'), EndElem(enclosingElem)))
   )
 
   val invalidVarDecs = (varDecString: String) => Table(
@@ -241,14 +241,14 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   )
 
   "compileClassVarDec" should "compile a valid class var for a static var" in {
-    forAll(validVarDecs("static")) { case (statementString, expectedTokens) =>
+    forAll(validVarDecs("static", "classVarDec")) { case (statementString, expectedTokens) =>
       val t = testTokeniser(statementString ++ " rest of programme")
       CompilationEngine.compileClassVarDec(t) shouldBe Right(expectedTokens)
     }
   }
 
   it should "compile a valid class var for a field var" in {
-    forAll(validVarDecs("field")) { case (statementString, expectedTokens) =>
+    forAll(validVarDecs("field", "classVarDec")) { case (statementString, expectedTokens) =>
       val t = testTokeniser(statementString ++ " rest of programme")
       CompilationEngine.compileClassVarDec(t) shouldBe Right(expectedTokens)
     }
@@ -262,7 +262,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   }
 
   "compileVarDec" should "compile a valid var dec" in {
-    forAll(validVarDecs("var")) { case (statementString, expectedTokens) =>
+    forAll(validVarDecs("var", "varDec")) { case (statementString, expectedTokens) =>
       val t = testTokeniser(statementString ++ " rest of programme")
       CompilationEngine.compileVarDec(t) shouldBe Right(expectedTokens)
     }
@@ -307,9 +307,9 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   "compileSubroutineBody" should "compile a valid subroutine body" in {
     val myBoolDeclaration = "var boolean myBool ;"
-    val myBoolDeclarationTokens = List(k("var"), k("boolean"), id("myBool"), sym(';'))
+    val myBoolDeclarationTokens = List(StartElem("varDec"), k("var"), k("boolean"), id("myBool"), sym(';'), EndElem("varDec"))
     val charDeclarations = "var char charA , charB ;"
-    val charDeclarationTokens =  List(k("var"), k("char"), id("charA"), sym(','), id("charB"), sym(';'))
+    val charDeclarationTokens =  List(StartElem("varDec"), k("var"), k("char"), id("charA"), sym(','), id("charB"), sym(';'), EndElem("varDec"))
     val letFooEqualStatement = "let foo = myBool ;"
     val letFooEqualTokens = List(k("let"), id("foo"), sym('='), id("myBool"), sym(';'))
     val returnStatement = "return foo ;"
@@ -339,7 +339,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   object SubroutineHelper {
     val functionDec = "function int returnV1 ( int v1 , int v2 ) { return v1 ; }"
     val functionDecTokens = List(k("function"), k("int"), id("returnV1"), sym('('), k("int"), id("v1"), sym(','), k("int"), id("v2"), sym(')'), sym('{'), k("return"), id("v1"), sym(';'), sym('}'))
-    val methodDec = "method void returnTrue ( String string , int i ) { return true ; } "
+    val methodDec = "method void returnTrue ( String string , int i ) { return true ; }"
     val methodDecTokens = List(k("method"), k("void"), id("returnTrue"), sym('('), id("String"), id("string"), sym(','), k("int"), id("i"), sym(')'), sym('{'), k("return"), k("true"), sym(';'), sym('}'))
     val constructorDec = "constructor myClass create ( String string ) { return myClassInstance ; }"
     val constructorTokens = List(k("constructor"), id("myClass"), id("create"), sym('('), id("String"), id("string"), sym(')'), sym('{'), k("return"), id("myClassInstance"), sym(';'), sym('}'))
@@ -365,13 +365,16 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   //TODO
   "compile class" should "compile a valid class" in {
-    val classVarDecs = "static int foo ;"
-    val classVarDecTokens = List(k("static"), k("int"), id("foo"), sym(';'))
+    import SubroutineHelper.*
+    val classVarDecs = "static int foo ; field char charA , charB ;"
+    val startClassVarDec = StartElem("classVarDec")
+    val endClassVarDec = EndElem("classVarDec")
+    val classVarDecTokens = List(startClassVarDec, k("static"), k("int"), id("foo"), sym(';'), endClassVarDec, startClassVarDec, k("field"), k("char"), id("charA"), sym(','), id("charB"), sym(';'), endClassVarDec)
     val validClassString =
-      s"class myClass { $classVarDecs ${SubroutineHelper.functionDec} }"
+      s"class myClass { $classVarDecs $functionDec $methodDec }"
 
     val tokeniser = testTokeniser(validClassString)
-    CompilationEngine.compileClass(tokeniser) shouldBe Right(List(k("class"), id("myClass")) ++ wrapCurly(classVarDecTokens ++ SubroutineHelper.functionDecTokens))
+    CompilationEngine.compileClass(tokeniser) shouldBe Right(List(k("class"), id("myClass")) ++ wrapCurly(classVarDecTokens ++ SubroutineHelper.functionDecTokens ++ SubroutineHelper.methodDecTokens))
   }
 
 

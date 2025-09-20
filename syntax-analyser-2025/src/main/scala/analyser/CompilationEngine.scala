@@ -16,14 +16,13 @@ object CompilationEngine {
     } yield List(Keyword("let"), varName, Symbol('='), term, Symbol(';'))
   }
 
-  //TODO
   def compileClass(t: Tokeniser): MaybeLexicalElements = {
     for {
       _ <- expectStringAndAdvance(t, "class")
       className <- expectVarAndAdvance(t)
       _ <- expectStringAndAdvance(t, "{")
-      classVarDecs <- compileClassVarDec(t) //TODO handle multiple
-      subroutineDecs <- compileSubroutine(t) //TODO handle multiple
+      classVarDecs <- compileZeroOrMore(t, List("static", "field"), compileClassVarDec)
+      subroutineDecs <- compileZeroOrMore(t, List("function", "method", "constructor"), compileSubroutine)
       closingToken <- if (t.currentToken == "}") {
         if (t.hasMoreTokens) {
           Left("uh oh tokens after class has closed")
@@ -35,6 +34,18 @@ object CompilationEngine {
       }
     } yield List(Keyword("class"), className, Symbol('{')) ++ classVarDecs ++ subroutineDecs :+ Symbol('}')
   }
+  
+  @tailrec
+  private def compileZeroOrMore(t: Tokeniser, startTokens: List[String], transformer: Tokeniser => MaybeLexicalElements, soFar: List[LexicalElem] = List()): MaybeLexicalElements =
+    if (!startTokens.contains(t.currentToken)) {
+      Right(soFar)
+    }  else {
+      val result = transformer(t)
+      result match {
+        case Left(err) => Left(err)
+        case Right(newElems) => compileZeroOrMore(t, startTokens, transformer, soFar ++ newElems)
+      }
+    }
 
   def compileClassVarDec(t: Tokeniser): MaybeLexicalElements =
     for {
@@ -42,7 +53,7 @@ object CompilationEngine {
       varType <- expectTypeAndAdvance(t)
       varNameLexElems <- parseNVars(t, List())
       _ <- expectStringAndAdvance(t, ";")
-    } yield List(staticOrField, varType) ++ varNameLexElems :+ Symbol(';')
+    } yield encloseWithTags("classVarDec", List(staticOrField, varType) ++ varNameLexElems ++ List(Symbol(';')))
 
 
   //TODO
@@ -98,7 +109,9 @@ object CompilationEngine {
     } else {
       Right(soFar)
     }
-
+    
+  private def encloseWithTags(tagname: String, elems: List[LexicalElem]) =
+    StartElem(tagname) +: elems :+ EndElem(tagname)  
 
   def compileVarDec(t: Tokeniser): MaybeLexicalElements =
     for {
@@ -106,7 +119,7 @@ object CompilationEngine {
       varType <- expectTypeAndAdvance(t)
       varNameLexElems <- parseNVars(t, List())
       _ <- expectStringAndAdvance(t, ";")
-    } yield List(Keyword("var"), varType) ++ varNameLexElems :+ Symbol(';')
+    } yield encloseWithTags("varDec", List(Keyword("var"), varType) ++ varNameLexElems ++ List(Symbol(';')))
 
   //TODO write tests
   @tailrec
