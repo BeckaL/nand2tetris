@@ -52,8 +52,8 @@ object CompilationEngine {
       Right(encloseWithTags("parameterList", elemsSoFar))
     } else {
       val result = for {
-        varType <- expectTypeAndAdvance(t)
-        varNameLexElems <- expectVarAndAdvance(t)
+        varType <- TypeRule(includeVoid = true).compile(t)
+        varNameLexElems <- VarRule.compile(t)
       } yield varType ++ varNameLexElems
       result match {
         case Left(str) => Left(str)
@@ -112,7 +112,7 @@ object CompilationEngine {
 
   val optionalDotCallRule = (t: Tokeniser) =>
     if (t.currentToken == ".") {
-      t.safeAdvance.flatMap(_ => expectVarAndAdvance(t).map(v2 => Symbol('.') +: v2))
+      t.safeAdvance.flatMap(_ => VarRule.compile(t).map(v2 => Symbol('.') +: v2))
     } else if (t.currentToken == "(") {
       Right(List())
     } else {
@@ -187,29 +187,11 @@ object CompilationEngine {
   def compileTerm(t: Tokeniser): MaybeLexicalElements =
     compileWithRules(t, List(compileTermRule), Some("term"))
 
-  private def expectTerm(t: Tokeniser): MaybeLexicalElements =
-    val s = t.currentToken
-    TokenTypes.tokenType(s) match
-      case TokenTypes.Identifier => Right(encloseWithTags("term", List(Identifier(s)))).tap(_ => t.advance())
-      case TokenTypes.IntConst => Right(encloseWithTags("term", List(IntConst(s.toInt)))).tap(_ => t.advance())
-      case TokenTypes.Keyword if TokenTypes.KEYWORD_CONSTANTS.contains(s) => Right(encloseWithTags("term", List(Keyword(s)))).tap(_ => t.advance())
-      case TokenTypes.StringConst => Right(encloseWithTags("term", List(stringConstFromQuotedString(s)))).tap(_ => t.advance())
-      case TokenTypes.Symbol if s == "(" =>
-        val rules = List(SymbolRule("("), CustomRule(compileExpression), SymbolRule(")"))
-        compileWithRules(t, rules, None)
-      case otherTokenType => Left(s"expected valid term to be found in string $s but got $otherTokenType")
-
-  private def expectVarAndAdvance(t: Tokeniser): MaybeLexicalElements =
-    VarRule.compile(t) //TODO legacy
-
-  private def expectTypeAndAdvance(t: Tokeniser, includeVoid: Boolean = false): MaybeLexicalElements =
-    TypeRule(includeVoid).compile(t) //TODO legacy
-
   private def stringConstFromQuotedString(s: String): StringConst =
     StringConst(s.tail.dropRight(1))
 
   private def parseNVars(t: Tokeniser, soFar: List[LexicalElem] = List()): MaybeLexicalElements =
-    expectVarAndAdvance(t).flatMap(varNameLexElem =>
+    VarRule.compile(t).flatMap(varNameLexElem =>
       t.currentToken match {
         case ";" => Right(soFar ++ varNameLexElem)
         case "," => t.safeAdvance.flatMap(_ =>
