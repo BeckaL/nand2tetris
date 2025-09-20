@@ -6,33 +6,30 @@ import scala.util.chaining.scalaUtilChainingOps
 object CompilationEngine {
   private type MaybeLexicalElements = Either[String, List[LexicalElem]]
 
-  def compileLet(t: Tokeniser): MaybeLexicalElements = {
-    for {
-      _ <- expectStringAndAdvance(t, "let")
-      varName <- expectVarAndAdvance(t)
-      _ <- expectStringAndAdvance(t, "=")
-      term <- parseExpressionPartial(t)
-      _ <- expectStringAndAdvance(t, ";")
-    } yield encloseWithTags("letStatement", List(Keyword("let"), varName, Symbol('=')) ++ term ++ List(Symbol(';')))
-  }
+  def compileLet(t: Tokeniser): MaybeLexicalElements =
+    val rules = List(KeywordRule("let"), VarRule, SymbolRule("="), CustomRule(parseExpressionPartial), SymbolRule(";"))
+    compileWithRules(t, rules, Some("letStatement"))
 
   def compileClass(t: Tokeniser): MaybeLexicalElements = {
-    for {
-      _ <- expectStringAndAdvance(t, "class")
-      className <- expectVarAndAdvance(t)
-      _ <- expectStringAndAdvance(t, "{")
-      classVarDecs <- compileZeroOrMore(t, List("static", "field"), compileClassVarDec)
-      subroutineDecs <- compileZeroOrMore(t, List("function", "method", "constructor"), compileSubroutine)
-      closingToken <- if (t.currentToken == "}") {
-        if (t.hasMoreTokens) {
+    val terminatingClosingBracket = CustomRule(tk =>
+      if (tk.currentToken == "}") {
+        if (tk.hasMoreTokens) {
           Left("uh oh tokens after class has closed")
         } else {
-          Right(Symbol('}'))
+          Right(List(Symbol('}')))
         }
       } else {
         Left(s"expected closing char } for class")
-      }
-    } yield encloseWithTags("class", List(Keyword("class"), className, Symbol('{')) ++ classVarDecs ++ subroutineDecs :+ Symbol('}'))
+      })
+    val rules = List(
+      KeywordRule("class"),
+      VarRule,
+      SymbolRule("{"),
+      CustomRule(compileZeroOrMore(_, List("static", "field"), compileClassVarDec)),
+      CustomRule(compileZeroOrMore(_, List("function", "method", "constructor"), compileSubroutine)),
+      terminatingClosingBracket
+    )
+    compileWithRules(t, rules, Some("class"))
   }
 
   @tailrec
@@ -51,13 +48,9 @@ object CompilationEngine {
     }
 
   def compileClassVarDec(t: Tokeniser): MaybeLexicalElements =
-    for {
-      staticOrField <- expectOneOfAndAdvance(t, List("static", "field"), s => Keyword(s))
-      varType <- expectTypeAndAdvance(t)
-      varNameLexElems <- parseNVars(t, List())
-      _ <- expectStringAndAdvance(t, ";")
-    } yield encloseWithTags("classVarDec", List(staticOrField, varType) ++ varNameLexElems ++ List(Symbol(';')))
-
+    val rules =
+      List(StringMatchingOneOfRule(List("static", "field"), Keyword.apply), CustomRule(expectTypeAndAdvance(_)), CustomRule(parseNVars(_)), SymbolRule(";"))
+    compileWithRules(t, rules, Some("classVarDec"))
 
   def compileSubroutine(t: Tokeniser): MaybeLexicalElements = {
     for {
@@ -68,7 +61,7 @@ object CompilationEngine {
       paramList <- compileParameterList(t, ")", List())
       _ <- expectStringAndAdvance(t, ")")
       subroutineBody <- compileSubroutineBody(t)
-    } yield encloseWithTags("subroutineDec", List(subroutineType, returnType, subroutineName, Symbol('(')) ++ (paramList :+ Symbol(')')) ++ subroutineBody)
+    } yield encloseWithTags("subroutineDec", List(subroutineType) ++ returnType ++ List(subroutineName, Symbol('(')) ++ (paramList :+ Symbol(')')) ++ subroutineBody)
   }
 
   @tailrec
@@ -79,7 +72,7 @@ object CompilationEngine {
       val result = for {
         varType <- expectTypeAndAdvance(t)
         varNameLexElems <- expectVarAndAdvance(t)
-      } yield List(varType, varNameLexElems)
+      } yield varType ++ List(varNameLexElems)
       result match {
         case Left(str) => Left(str)
         case Right(newElems) =>
@@ -98,14 +91,10 @@ object CompilationEngine {
 
 
   def compileSubroutineBody(t: Tokeniser): MaybeLexicalElements =
-    for {
-      _ <- expectStringAndAdvance(t, "{")
-      varDecs <- compileVarDecs(t, List()) //TODO 0 or more
-      statements <- compileStatements(t, "}", List())
-      _ <- expectStringAndAdvance(t, "}")
-    } yield encloseWithTags("subroutineBody", Symbol('{') +: (varDecs ++ statements :+ Symbol('}')))
+    val rules = List(SymbolRule("{"), CustomRule(compileVarDecs(_)), CustomRule(compileStatements(_, "}", List())), SymbolRule("}"))
+    compileWithRules(t, rules, Some("subroutineBody"))
 
-  private def compileVarDecs(t: Tokeniser, soFar: List[LexicalElem]): MaybeLexicalElements =
+  private def compileVarDecs(t: Tokeniser, soFar: List[LexicalElem] = List()): MaybeLexicalElements =
     if (t.currentToken == "var") {
       compileVarDec(t).flatMap(newElems => compileVarDecs(t, soFar ++ newElems))
     } else {
@@ -116,12 +105,8 @@ object CompilationEngine {
     StartElem(tagname) +: elems :+ EndElem(tagname)
 
   def compileVarDec(t: Tokeniser): MaybeLexicalElements =
-    for {
-      varString <- expectStringAndAdvance(t, "var")
-      varType <- expectTypeAndAdvance(t)
-      varNameLexElems <- parseNVars(t, List())
-      _ <- expectStringAndAdvance(t, ";")
-    } yield encloseWithTags("varDec", List(Keyword("var"), varType) ++ varNameLexElems ++ List(Symbol(';')))
+    val rules = List(KeywordRule("var"), CustomRule(expectTypeAndAdvance(_)), CustomRule(parseNVars(_)), SymbolRule(";"))
+    compileWithRules(t, rules, Some("varDec"))
 
   //TODO write tests
   @tailrec
@@ -147,20 +132,23 @@ object CompilationEngine {
   }
 
   def compileIf(t: Tokeniser): MaybeLexicalElements =
-    for {
-      _ <- expectStringAndAdvance(t, "if")
-      _ <- expectStringAndAdvance(t, "(")
-      exp <- parseExpressionPartial(t)
-      _ <- expectStringAndAdvance(t, ")")
-      statementsWithCurlyBrackets <- expectStatementsEnclosedByCurlyBrackets(t)
-      optionalElse <-
-        if (t.currentToken == "else")
-          safeAdvance(t)
-            .flatMap(_ => expectStatementsEnclosedByCurlyBrackets(t))
-            .map(statementWithCurlies => Keyword("else") +: statementWithCurlies)
-        else
-          Right(List())
-    } yield encloseWithTags("ifStatement", List(Keyword("if"), Symbol('(')) ++ exp ++ List(Symbol(')')) ++ statementsWithCurlyBrackets ++ optionalElse)
+    val rules = List(
+      KeywordRule("if"),
+      openBracket,
+      CustomRule(parseExpressionPartial),
+      closeBracket,
+      CustomRule(expectStatementsEnclosedByCurlyBrackets),
+      OptionalElemRule(_ == "else", (t: Tokeniser) => expectStatementsEnclosedByCurlyBrackets(t).map(Keyword("else") +: _))
+    )
+    compileWithRules(t, rules, Some("ifStatement"))
+
+  case class OptionalElemRule(condition: String => Boolean, rule: Tokeniser => MaybeLexicalElements) extends CompilationRule {
+    override def compile(t: Tokeniser) =
+      if (condition(t.currentToken))
+        safeAdvance(t).flatMap(_ => rule(t))
+      else
+        Right(List())
+  }
 
   private def expectStatementsEnclosedByCurlyBrackets(t: Tokeniser): MaybeLexicalElements =
     for {
@@ -169,50 +157,107 @@ object CompilationEngine {
       _ <- expectStringAndAdvance(t, "}")
     } yield Symbol('{') +: (statements :+ Symbol('}'))
 
+  val openBracket = SymbolRule("(")
+  val closeBracket = SymbolRule(")")
+
   def compileWhile(t: Tokeniser): MaybeLexicalElements =
-    for {
-      _ <- expectStringAndAdvance(t, "while")
-      _ <- expectStringAndAdvance(t, "(")
-      exp <- parseExpressionPartial(t)
-      _ <- expectStringAndAdvance(t, ")")
-      statementsWithCurlies <- expectStatementsEnclosedByCurlyBrackets(t)
-    } yield encloseWithTags("whileStatement", List(Keyword("while"), Symbol('(')) ++ exp ++ List(Symbol(')')) ++ statementsWithCurlies)
+    val rules = List(KeywordRule("while"), openBracket, CustomRule(parseExpressionPartial), closeBracket, CustomRule(expectStatementsEnclosedByCurlyBrackets))
+    compileWithRules(t, rules, Some("whileStatement"))
 
   def compileDo(t: Tokeniser): MaybeLexicalElements = {
-    for {
-      _ <- expectStringAndAdvance(t, "do")
-      subroutineCall <- parseSubroutineCall(t)
-      _ <- expectStringAndAdvance(t, ";")
-    } yield encloseWithTags("doStatement", Keyword("do") +: subroutineCall :+ Symbol(';'))
+    val doRules = List(KeywordRule("do"), ObjectRule(subroutineCallRules), SymbolRule(";"))
+    compileWithRules(t, doRules, Some("doStatement"))
   }
 
+  def compileWithRules(t: Tokeniser, rules: List[CompilationRule], enclosingElem: Option[String]): MaybeLexicalElements =
+    @tailrec
+    def go(soFar: List[LexicalElem], remainingRules: List[CompilationRule]): MaybeLexicalElements =
+      remainingRules match
+        case Nil =>
+          enclosingElem match {
+            case Some(elem) => Right(encloseWithTags(elem, soFar))
+            case None => Right(soFar)
+          }
+        case firstRule :: otherRules =>
+          firstRule.compile(t) match
+            case Left(err) => Left(err)
+            case Right(newElems) => go(soFar ++ newElems, otherRules)
+
+    go(List(), rules)
+
+  trait CompilationRule {
+    def compile(t: Tokeniser): MaybeLexicalElements
+  }
+
+  case class KeywordRule(stringToMatch: String) extends CompilationRule {
+    override def compile(t: Tokeniser): MaybeLexicalElements =
+      stringMatchingRule(t, List(stringToMatch), Keyword.apply)
+  }
+
+  case class SymbolRule(stringToMatch: String) extends CompilationRule {
+    override def compile(t: Tokeniser): MaybeLexicalElements =
+      stringMatchingRule(t, List(stringToMatch), (s: String) => Symbol(s.head))
+  }
+
+  private def stringMatchingRule(t: Tokeniser, stringsToMatch: List[String], transformer: String => LexicalElem): MaybeLexicalElements =
+    val s = t.currentToken
+    if (stringsToMatch.contains(s))
+      safeAdvance(t).map(_ => List(transformer(s)))
+    else
+      Left(s"expected one of $stringsToMatch, got ${t.currentToken}")
+
+  case class ObjectRule(rules: List[CompilationRule], enclosingElem: Option[String] = None) extends CompilationRule {
+    override def compile(t: Tokeniser): MaybeLexicalElements =
+      compileWithRules(t, rules, enclosingElem)
+  }
+
+  case class StringMatchingOneOfRule(stringsToMatch: List[String], transformer: String => LexicalElem) extends CompilationRule {
+    override def compile(t: Tokeniser): MaybeLexicalElements =
+      stringMatchingRule(t, stringsToMatch, transformer)
+  }
+
+  case object VarRule extends CompilationRule {
+    override def compile(t: Tokeniser): MaybeLexicalElements =
+      val s = t.currentToken
+      TokenTypes.tokenType(s) match
+        case TokenTypes.Identifier => safeAdvance(t).flatMap(_ => Right(List(Identifier(s))))
+        case otherTokenType => Left(s"expected token type identifier for string $s but got $otherTokenType")
+  }
+
+  case class CustomRule(rule: Tokeniser => MaybeLexicalElements) extends CompilationRule {
+    override def compile(t: Tokeniser): MaybeLexicalElements = rule(t)
+  }
+
+  case object ExpressionListRule extends CompilationRule {
+    override def compile(t: Tokeniser): MaybeLexicalElements = compileExpressionList(t).map(_._1)
+  }
+
+  val optionalDotCallRule = (t: Tokeniser) =>
+    if (t.currentToken == ".") {
+      safeAdvance(t).flatMap(_ => expectVarAndAdvance(t).map(v2 => List(Symbol('.'), v2)))
+    } else if (t.currentToken == "(") {
+      Right(List())
+    } else {
+      Left("expected a valid subroutine call")
+    }
+
+  val subroutineCallRules =
+    List(VarRule, CustomRule(optionalDotCallRule), SymbolRule("("), ExpressionListRule, SymbolRule(")"))
+
   private def parseSubroutineCall(t: Tokeniser) =
-    for {
-      v1 <- expectVarAndAdvance(t)
-      optionalDotCall <- if (t.currentToken == ".") {
-        safeAdvance(t).flatMap(_ => expectVarAndAdvance(t).map(v2 => List(Symbol('.'), v2)))
-      } else if (t.currentToken == "(") {
-        Right(List())
-      } else {
-        Left("expected a valid subroutine call")
-      }
-      _ <- expectStringAndAdvance(t, "(")
-      (expressionList, _) <- compileExpressionList(t)
-      _ <- expectStringAndAdvance(t, ")")
-    } yield v1 +: (optionalDotCall ++ (Symbol('(') +: expressionList :+ Symbol(')')))
+    compileWithRules(t, subroutineCallRules, None)
 
   //TODO: get rid
   private def parseExpressionPartial(t: Tokeniser) = expectTerm(t).map(elems => encloseWithTags("expression", elems))
 
   def compileReturn(t: Tokeniser): MaybeLexicalElements =
-    for {
-      _ <- expectStringAndAdvance(t, "return")
-      optionalExpression <-
-        if (t.currentToken != ";") {
-          parseExpressionPartial(t).map(Some(_)) //TODO expect expression when expressions implemented
-        } else Right(Option.empty)
-      _ <- expectStringAndAdvance(t, ";")
-    } yield encloseWithTags("returnStatement", List(Keyword("return")) ++ (optionalExpression.toList.flatten :+ Symbol(';')))
+    val optionalExpressionRule = (tk: Tokeniser) =>
+      if (t.currentToken != ";") {
+        parseExpressionPartial(t) //TODO expect expression when expressions implemented
+      } else Right(List())
+
+    val rules = List(KeywordRule("return"), CustomRule(optionalExpressionRule), SymbolRule(";"))
+    compileWithRules(t, rules, Some("returnStatement"))
 
   //TODO part 2
   def compileExpression(t: Tokeniser): MaybeLexicalElements = ???
@@ -227,7 +272,7 @@ object CompilationEngine {
           if (t.currentToken == ",") {
             safeAdvance(t).flatMap(_ => go(soFar ++ lexElems :+ Symbol(','), expressionListCount + 1))
           } else if (t.currentToken == ")") {
-            Right(encloseWithTags("expressionList",soFar ++ lexElems), expressionListCount + 1)
+            Right(encloseWithTags("expressionList", soFar ++ lexElems), expressionListCount + 1)
           } else {
             Left(s"invalid expression list, expected , or ) but got ${t.currentToken}")
           }
@@ -267,18 +312,18 @@ object CompilationEngine {
     else
       Left(s"expected ${t.currentToken} toMatch one of $toMatch")
 
-  private def expectTypeAndAdvance(t: Tokeniser, includeVoid: Boolean = false): Either[String, LexicalElem] =
+  private def expectTypeAndAdvance(t: Tokeniser, includeVoid: Boolean = false): MaybeLexicalElements =
     val currentToken = t.currentToken
     TokenTypes.tokenType(currentToken) match {
       case TokenTypes.Keyword =>
         val variableTypes = List("boolean", "char", "int")
         val typesToCheck = if (includeVoid) "void" +: variableTypes else variableTypes
         if (typesToCheck.contains(currentToken))
-          safeAdvance(t).flatMap(_ => Right(Keyword(currentToken)))
+          safeAdvance(t).flatMap(_ => Right(List(Keyword(currentToken))))
         else
           Left(s"keyword $currentToken cannot be used as a type, valid keyword types are boolean char or int")
       case TokenTypes.Identifier =>
-        Right(Identifier(currentToken)).tap(_ => t.advance())
+        Right(List(Identifier(currentToken))).tap(_ => t.advance())
       case other =>
         Left(s"$currentToken cannot be used as a type")
     }
@@ -286,7 +331,7 @@ object CompilationEngine {
   private def stringConstFromQuotedString(s: String): StringConst =
     StringConst(s.tail.dropRight(1))
 
-  private def parseNVars(t: Tokeniser, soFar: List[LexicalElem]): MaybeLexicalElements =
+  private def parseNVars(t: Tokeniser, soFar: List[LexicalElem] = List()): MaybeLexicalElements =
     expectVarAndAdvance(t).flatMap(varNameLexElem =>
       t.currentToken match {
         case ";" => Right(soFar :+ varNameLexElem)
