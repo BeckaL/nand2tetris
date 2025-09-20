@@ -42,7 +42,7 @@ object CompilationEngine {
         case Some(tag) => Right(encloseWithTags(tag, soFar))
         case None => Right(soFar)
       }
-    }  else {
+    } else {
       val result = transformer(t)
       result match {
         case Left(err) => Left(err)
@@ -128,7 +128,7 @@ object CompilationEngine {
   def compileStatements(t: Tokeniser, terminatingString: String, soFar: List[LexicalElem]): MaybeLexicalElements = {
     val validStatementStarts = List("let", "do", "while", "if", "return")
     t.currentToken match {
-      case s if s == terminatingString => Right(soFar)
+      case s if s == terminatingString => Right(encloseWithTags("statements", soFar))
       case nonStatementString if !validStatementStarts.contains(nonStatementString) =>
         Left(s"uh oh, tried to compile a statement starting with ${nonStatementString}")
       case statementKeyword if validStatementStarts.contains(statementKeyword) =>
