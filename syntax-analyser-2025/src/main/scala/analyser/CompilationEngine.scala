@@ -24,29 +24,22 @@ object CompilationEngine {
       varNameLexElems <- parseNVars(t, List())
       _ <- expectStringAndAdvance(t, ";")
     } yield List(staticOrField, varType) ++ varNameLexElems :+ Symbol(';')
-    
-  private def parseNVars(t: Tokeniser, soFar: List[LexicalElem]): MaybeLexicalElements =
-      expectVar(t).flatMap(varNameLexElem =>
-        t.currentToken match {
-          case ";" => Right(soFar :+ varNameLexElem)
-          case "," => safeAdvance(t).flatMap(_ =>
-            parseNVars(t, soFar ++ List(varNameLexElem, Symbol(',')))
-          )
-          case otherToken => Left(s"expected either ';' or ',' when parsing vars, got $otherToken")
-        })
-      
-  private def safeAdvance(t: Tokeniser): Either[String, Unit] =
-    if (t.hasMoreTokens) 
-      t.advance()
-      Right(())
-    else Left("unexpected end of input")
+
 
   def compileSubroutine(t: Tokeniser): MaybeLexicalElements = ???
 
   def compileParameterList(t: Tokeniser): MaybeLexicalElements = ???
 
   def compileSubroutineBody(t: Tokeniser): MaybeLexicalElements = ???
-  def compileVarDec(t: Tokeniser): MaybeLexicalElements = ???
+  
+  def compileVarDec(t: Tokeniser): MaybeLexicalElements =
+    for {
+      varString <- expectStringAndAdvance(t, "var")
+      varType <- expectTypeAndAdvance(t)
+      varNameLexElems <- parseNVars(t, List())
+      _ <- expectStringAndAdvance(t, ";")
+    } yield List(Keyword("var"), varType) ++ varNameLexElems :+ Symbol(';')
+
   def compileStatements(t: Tokeniser): MaybeLexicalElements = ???
   def compileIf(t: Tokeniser): MaybeLexicalElements = ???
   def compileWhile(t: Tokeniser): MaybeLexicalElements = ???
@@ -73,8 +66,7 @@ object CompilationEngine {
 
   private def expectStringAndAdvance(t: Tokeniser, toMatch: String): Either[String, Unit] =
     if (t.currentToken == toMatch)
-      Right(()).tap(_ => t.advance())
-      //TODO when to call has more tokens?
+      safeAdvance(t)
     else
       Left(s"expected $toMatch, got ${t.currentToken}")
       
@@ -101,4 +93,21 @@ object CompilationEngine {
 
   private def stringConstFromQuotedString(s: String): StringConst =
     StringConst(s.tail.dropRight(1))
+
+
+  private def parseNVars(t: Tokeniser, soFar: List[LexicalElem]): MaybeLexicalElements =
+    expectVar(t).flatMap(varNameLexElem =>
+      t.currentToken match {
+        case ";" => Right(soFar :+ varNameLexElem)
+        case "," => safeAdvance(t).flatMap(_ =>
+          parseNVars(t, soFar ++ List(varNameLexElem, Symbol(',')))
+        )
+        case otherToken => Left(s"expected either ';' or ',' when parsing vars, got $otherToken")
+      })
+
+  private def safeAdvance(t: Tokeniser): Either[String, Unit] =
+    if (t.hasMoreTokens)
+      t.advance()
+      Right(())
+    else Left("unexpected end of input")
 }

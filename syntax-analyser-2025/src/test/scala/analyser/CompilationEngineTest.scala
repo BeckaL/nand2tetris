@@ -39,7 +39,7 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   "compileLet" should "compile a valid let statement" in {
     forAll(validLetStatements) { case (statementString, expectedTokens) =>
-      val tokeniser = testTokeniser(statementString)
+      val tokeniser = testTokeniser(statementString ++ " rest of programme")
       CompilationEngine.compileLet(tokeniser) shouldBe Right(expectedTokens)
     }
   }
@@ -55,43 +55,63 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
   //"let foo = ";
   //"let foo = ;"
 
-  "compileClassVarDec" should "compile a valid class var dec" in {
-    val validClassVarDecs = Table(
-      ("statementString", "expectedTokens"),
-      ("static boolean myBool ;", List(k("static"), k("boolean"), id("myBool"), sym(';'))),
-      ("field boolean myBool ;", List(k("field"), k("boolean"), id("myBool"), sym(';'))),
-      ("static boolean myBool , mySecondBool ;", List(k("static"), k("boolean"), id("myBool"), sym(','), id("mySecondBool"), sym(';'))),
-      ("static boolean myBool , mySecondBool , myThirdBool ;", List(k("static"), k("boolean"), id("myBool"), sym(','), id("mySecondBool"), sym(','), id("myThirdBool"), sym(';'))),
-      ("static int myNumber ;", List(k("static"), k("int"), id("myNumber"), sym(';'))),
-      ("static char myChar ;", List(k("static"), k("char"), id("myChar"), sym(';'))),
-      ("static myClass myClassInstance ;", List(k("static"), id("myClass"), id("myClassInstance"), sym(';')))
-    )
+  val validVarDecs = (varDecTypeString: String) => Table(
+    ("statementString", "expectedTokens"),
+    (s"$varDecTypeString boolean myBool ;", List(k(varDecTypeString), k("boolean"), id("myBool"), sym(';'))),
+    (s"$varDecTypeString boolean myBool , mySecondBool ;", List(k(varDecTypeString), k("boolean"), id("myBool"), sym(','), id("mySecondBool"), sym(';'))),
+    (s"$varDecTypeString boolean myBool , mySecondBool , myThirdBool ;", List(k(varDecTypeString), k("boolean"), id("myBool"), sym(','), id("mySecondBool"), sym(','), id("myThirdBool"), sym(';'))),
+    (s"$varDecTypeString int myNumber ;", List(k(varDecTypeString), k("int"), id("myNumber"), sym(';'))),
+    (s"$varDecTypeString char myChar ;", List(k(varDecTypeString), k("char"), id("myChar"), sym(';'))),
+    (s"$varDecTypeString myClass myClassInstance ;", List(k(varDecTypeString), id("myClass"), id("myClassInstance"), sym(';')))
+  )
 
-    forAll(validClassVarDecs) { case (statementString, expectedTokens) =>
-      val t = testTokeniser(statementString)
+  val invalidVarDecs = (varDecString: String) => Table(
+    "invalidstatementString",
+    s"$varDecString boolean myBool", //no closing ;
+    s"$varDecString boolean ;", //no vars ;
+    s"$varDecString boolean myBool , mySecondBool ", //no closing ;
+    s"$varDecString boolean myBool , mySecondBool , ;", //dangling comma
+    s"$varDecString int 5 ;", //not a var name
+    s"$varDecString this myChar ;", //not a valid type (reserved keyword)
+    "staticField boolean notAProperFieldName ; ", //neither $varDecString nor field
+    s"$varDecString 5 int ;", //5 not a valid identifier
+    s"$varDecString", //variants of dangling statements
+    s"$varDecString boolean", //variants of dangling statements
+    s"$varDecString boolean myBool + myOtherBool ;" //invalid joining char
+  )
+
+  "compileClassVarDec" should "compile a valid class var for a static var" in {
+    forAll(validVarDecs("static")) { case (statementString, expectedTokens) =>
+      val t = testTokeniser(statementString ++ " rest of programme")
+      CompilationEngine.compileClassVarDec(t) shouldBe Right(expectedTokens)
+    }
+  }
+
+  it should "compile a valid class var for a field var" in {
+    forAll(validVarDecs("field")) { case (statementString, expectedTokens) =>
+      val t = testTokeniser(statementString ++ " rest of programme")
       CompilationEngine.compileClassVarDec(t) shouldBe Right(expectedTokens)
     }
   }
 
   it should "return a left for an invalid class var dec" in {
-    val invalidClassVarDecs = Table(
-      "invalidstatementString",
-      "static boolean myBool", //no closing ;
-      "static boolean ;", //no vars ;
-      "static boolean myBool , mySecondBool ", //no closing ;
-      "static boolean myBool , mySecondBool , ;", //dangling comma
-      "static int 5 ;", //not a var name
-      "static this myChar ;", //not a valid type (reserved keyword)
-      "staticField boolean notAProperFieldName ; ", //neither static nor field
-      "static 5 int ;", //5 not a valid identifier
-      "static", //variants of dangling statements
-      "static boolean", //variants of dangling statements
-      "static boolean myBool + myOtherBool ;" //invalid joining char
-    )
-
-    forAll(invalidClassVarDecs) { invalidString =>
-      val t = testTokeniser(invalidString)
+    forAll(invalidVarDecs("static") ++ invalidVarDecs("field")) { invalidString =>
+      val t = testTokeniser(invalidString ++ " rest of programme")
       CompilationEngine.compileClassVarDec(t).isLeft shouldBe true
+    }
+  }
+
+  "compileVarDec" should "compile a valid var dec" in {
+    forAll(validVarDecs("var")) { case (statementString, expectedTokens) =>
+      val t = testTokeniser(statementString ++ " rest of programme")
+      CompilationEngine.compileVarDec(t) shouldBe Right(expectedTokens)
+    }
+  }
+
+  it should "return a left for invalid var decs" in {
+    forAll(invalidVarDecs("var")) { case invalidVarDecString =>
+      val t = testTokeniser(invalidVarDecString ++ " rest of programme")
+      CompilationEngine.compileVarDec(t).isLeft shouldBe true
     }
   }
 
