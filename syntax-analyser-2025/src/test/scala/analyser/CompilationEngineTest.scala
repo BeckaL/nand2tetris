@@ -279,8 +279,8 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
     val validParameterLists = Table(
       ("validStatement", "expectedTokens"),
       (")", List()),
-      ("boolean myBool", List(k("boolean"), id("myBool"))),
-      ("boolean myBool , int myInt , className myClass , char myChar", List(k("boolean"), id("myBool"), sym(','), k("int"), id("myInt"), sym(','), id("className"), id("myClass"), sym(','), k("char"), id("myChar")))
+      ("boolean myBool", wrapInTag(List(k("boolean"), id("myBool")), "parameterList")),
+      ("boolean myBool , int myInt , className myClass , char myChar", wrapInTag(List(k("boolean"), id("myBool"), sym(','), k("int"), id("myInt"), sym(','), id("className"), id("myClass"), sym(','), k("char"), id("myChar")), "parameterList"))
     )
 
     forAll(validParameterLists) { case (statementString, expectedTokens) =>
@@ -338,11 +338,11 @@ class CompilationEngineTest extends AnyFlatSpec with Matchers with TableDrivenPr
 
   object SubroutineHelper {
     val functionDec = "function int returnV1 ( int v1 , int v2 ) { return v1 ; }"
-    val functionDecTokens = wrapInTag(List(k("function"), k("int"), id("returnV1"), sym('('), k("int"), id("v1"), sym(','), k("int"), id("v2"), sym(')'), StartElem("subroutineBody"), sym('{'), StartElem("returnStatement"), k("return"), id("v1"), sym(';'), EndElem("returnStatement"), sym('}'), EndElem("subroutineBody")), "subroutineDec")
+    val functionDecTokens = wrapInTag(List(k("function"), k("int"), id("returnV1"), sym('('), StartElem("parameterList"), k("int"), id("v1"), sym(','), k("int"), id("v2"), EndElem("parameterList"), sym(')'), StartElem("subroutineBody"), sym('{'), StartElem("returnStatement"), k("return"), id("v1"), sym(';'), EndElem("returnStatement"), sym('}'), EndElem("subroutineBody")), "subroutineDec")
     val methodDec = "method void returnTrue ( String string , int i ) { return true ; }"
-    val methodDecTokens = wrapInTag(List(k("method"), k("void"), id("returnTrue"), sym('('), id("String"), id("string"), sym(','), k("int"), id("i"), sym(')'), StartElem("subroutineBody"), sym('{'), StartElem("returnStatement"), k("return"), k("true"), sym(';'), EndElem("returnStatement"), sym('}'), EndElem("subroutineBody")), "subroutineDec")
+    val methodDecTokens = wrapInTag(List(k("method"), k("void"), id("returnTrue"), sym('('),  StartElem("parameterList"), id("String"), id("string"), sym(','), k("int"), id("i"), EndElem("parameterList"), sym(')'), StartElem("subroutineBody"), sym('{'), StartElem("returnStatement"), k("return"), k("true"), sym(';'), EndElem("returnStatement"), sym('}'), EndElem("subroutineBody")), "subroutineDec")
     val constructorDec = "constructor myClass create ( String string ) { return myClassInstance ; }"
-    val constructorTokens = wrapInTag(List(k("constructor"), id("myClass"), id("create"), sym('('), id("String"), id("string"), sym(')'), StartElem("subroutineBody"), sym('{'), StartElem("returnStatement"), k("return"), id("myClassInstance"), sym(';'), EndElem("returnStatement"), sym('}'), EndElem("subroutineBody")), "subroutineDec")
+    val constructorTokens = wrapInTag(List(k("constructor"), id("myClass"), id("create"), sym('('),  StartElem("parameterList"), id("String"), id("string"), EndElem("parameterList"), sym(')'), StartElem("subroutineBody"), sym('{'), StartElem("returnStatement"), k("return"), id("myClassInstance"), sym(';'), EndElem("returnStatement"), sym('}'), EndElem("subroutineBody")), "subroutineDec")
   }
 
   "compileSubroutine" should "compile a valid subroutine" in {

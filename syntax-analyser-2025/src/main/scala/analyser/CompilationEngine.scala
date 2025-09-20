@@ -84,7 +84,7 @@ object CompilationEngine {
         case Left(str) => Left(str)
         case Right(newElems) =>
           if (t.currentToken == closingChar) {
-            Right(elemsSoFar ++ newElems)
+            Right(encloseWithTags("parameterList", elemsSoFar ++ newElems))
           } else if (t.currentToken != ",") {
             Left(s"expected continuation of param list with comma, got ${t.currentToken}")
           } else {
