@@ -13,7 +13,7 @@ object CompilationEngine {
       _ <- expectStringAndAdvance(t, "=")
       term <- expectTerm(t)
       _ <- expectStringAndAdvance(t, ";")
-    } yield List(Keyword("let"), varName, Symbol('='), term, Symbol(';'))
+    } yield encloseWithTags("letStatement", List(Keyword("let"), varName, Symbol('='), term, Symbol(';')))
   }
 
   def compileClass(t: Tokeniser): MaybeLexicalElements = {
@@ -34,7 +34,7 @@ object CompilationEngine {
       }
     } yield List(Keyword("class"), className, Symbol('{')) ++ classVarDecs ++ subroutineDecs :+ Symbol('}')
   }
-  
+
   @tailrec
   private def compileZeroOrMore(t: Tokeniser, startTokens: List[String], transformer: Tokeniser => MaybeLexicalElements, soFar: List[LexicalElem] = List()): MaybeLexicalElements =
     if (!startTokens.contains(t.currentToken)) {
@@ -109,9 +109,9 @@ object CompilationEngine {
     } else {
       Right(soFar)
     }
-    
+
   private def encloseWithTags(tagname: String, elems: List[LexicalElem]) =
-    StartElem(tagname) +: elems :+ EndElem(tagname)  
+    StartElem(tagname) +: elems :+ EndElem(tagname)
 
   def compileVarDec(t: Tokeniser): MaybeLexicalElements =
     for {
@@ -158,7 +158,7 @@ object CompilationEngine {
             .map(statementWithCurlies => Keyword("else") +: statementWithCurlies)
         else
           Right(List())
-    } yield List(Keyword("if"), Symbol('('), exp, Symbol(')')) ++ statementsWithCurlyBrackets ++ optionalElse
+    } yield encloseWithTags("ifStatement", List(Keyword("if"), Symbol('('), exp, Symbol(')')) ++ statementsWithCurlyBrackets ++ optionalElse)
 
   private def expectStatementsEnclosedByCurlyBrackets(t: Tokeniser): MaybeLexicalElements =
     for {
@@ -174,14 +174,14 @@ object CompilationEngine {
       exp <- parseExpressionPartial(t)
       _ <- expectStringAndAdvance(t, ")")
       statementsWithCurlies <- expectStatementsEnclosedByCurlyBrackets(t)
-    } yield List(Keyword("while"), Symbol('('), exp, Symbol(')')) ++ statementsWithCurlies
+    } yield encloseWithTags("whileStatement", List(Keyword("while"), Symbol('('), exp, Symbol(')')) ++ statementsWithCurlies)
 
   def compileDo(t: Tokeniser): MaybeLexicalElements = {
     for {
       _ <- expectStringAndAdvance(t, "do")
       subroutineCall <- parseSubroutineCall(t)
       _ <- expectStringAndAdvance(t, ";")
-    } yield Keyword("do") +: subroutineCall :+ Symbol(';')
+    } yield encloseWithTags("doStatement", Keyword("do") +: subroutineCall :+ Symbol(';'))
   }
 
   private def parseSubroutineCall(t: Tokeniser) =
@@ -210,7 +210,7 @@ object CompilationEngine {
           expectTerm(t).map(Some(_)) //TODO expect expression when expressions implemented
         } else Right(Option.empty)
       _ <- expectStringAndAdvance(t, ";")
-    } yield List(Keyword("return")) ++ (optionalExpression.toList :+ Symbol(';'))
+    } yield encloseWithTags("returnStatement", List(Keyword("return")) ++ (optionalExpression.toList :+ Symbol(';')))
 
   //TODO part 2
   def compileExpression(t: Tokeniser): MaybeLexicalElements = ???
